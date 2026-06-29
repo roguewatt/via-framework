@@ -33,12 +33,8 @@ Each revision or forecast release is a separate record version with its own Issu
 ### Reference Time
 
 Reference Time is the temporal anchor of a sample or inference. It is the timestamp that defines the information state from which the sample's forecast outputs are produced.
-
-Each sample or inference has one Reference Time.
-
-Any input used by the sample must satisfy:
-
-`Issue Time ≤ Reference Time`
+- Each sample or inference has one Reference Time.
+- Any input used by the sample must satisfy: `Issue Time ≤ Reference Time`
 
 For example, consider a half-hourly solar-generation model using `Solar Radiation Forecast` and `Cloud Cover Forecast` as input features. The model jointly produces `HH0`, `HH1`, and `HH2` as separate outputs. This forms a MIMO structure in which the multiple outputs represent different horizons of the same target series.
 
@@ -71,9 +67,7 @@ The Forecast Schedule then maps those outputs to their Target Valid Times:
 Reference Time therefore defines the information state from which every forecast output for that sample or inference is produced. The Forecast Schedule resolves each output to its Target Valid Time using Reference Time as the schedule anchor.
 
 ### Cutoff
-Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job.
-
-A run normally has one Cutoff, while the samples or inferences contained within that run may have many Reference Times.
+Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples or inferences contained within that run may have many Reference Times.
 
 Cutoff determines the latest data state available to the run and therefore constrains:
 - which record versions can be retrieved;
@@ -140,9 +134,7 @@ Testing follows the same input eligibility rule as training. The model is evalua
 - **Single inference**: one Reference Time, one logical model input, and one set of outputs. The output may be single-horizon or multi-horizon.
 - **Multiple inferences**: multiple logical model inputs, each governed by its own Reference Time. They may be processed individually or together in a batch.
 
-The resulting predictions are aligned with their Target Valid Times and scored against realised values.
-
-Multiple-inference evaluation is the standard structure for out-of-sample backtesting.
+The resulting predictions are aligned with their Target Valid Times and scored against realised values. Multiple-inference evaluation is the standard structure for out-of-sample backtesting.
 
 It is orthogonal to multi-horizon:
 
