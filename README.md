@@ -177,95 +177,191 @@ Multi-horizon and I/O schema describe different aspects of the model:
 
 ## Examples
 
-### Example 1: Intraday Single Horizon (MISO)
-GB Zone A. A prediction is issued at 08:15 to forecast load for the next settlement period.
-- **I/O Schema**: MISO.
-- **Reference Time**: 2026-06-19 08:00.
-- **Input records**: all records used satisfy `Input Record Issue Time ≤ 08:00`.
-- **Target Valid Time**: 2026-06-19 08:30.
-- **Issue Time**: 2026-06-19 08:15.
-- **Check**: input-compliant.
+### SISO Example 1: Single-Horizon Autoregressive Forecast
 
-### Example 2: Intraday Multi-Horizon (MISO)
-GB Zone A. A prediction is issued at 08:15 to forecast load for the next three settlement periods.
-- **I/O Schema**: MISO.
-- **Multi-horizon**: 3.
-- **Reference Time**: 2026-06-19 08:00.
-- **Input records**: all records used satisfy `Input Record Issue Time ≤ 08:00`.
-- **Target Valid Times**: 08:30, 09:00, and 09:30.
-- **Issue Time**: 2026-06-19 08:15.
-- **Check**: input-compliant.
+A model uses one historical load series to forecast one future load value.
 
-### Example 3: Two Zones, Two Days Each (MIMO)
-Zone A and Zone B are forecast for each of the next two days.
-- **I/O Schema**: MIMO.
-- **Multi-horizon**: 2.
-- **Reference Time**: 2026-06-19 03:00.
-- **Input records**: all records used satisfy `Input Record Issue Time ≤ 2026-06-19 03:00`.
-- **Target Valid Times**: 2026-06-20 and 2026-06-21 for both output series.
-- **Check**: compliant.
+| I/O Schema | Input | Output | Reference Time | Target Valid Time | Issue Time | Input eligibility |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| SISO | Historical load | Load at the next settlement period | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 08:15 | The historical load used satisfies `Issue Time ≤ Reference Time` |
 
-### Example 4: Single Zone, Two Metrics (MIMO)
-GB Zone A. Predict load and price for the next settlement period.
-- **I/O Schema**: MIMO.
-- **Reference Time**: 2026-06-19 08:00.
-- **Input records**: all records used satisfy `Input Record Issue Time ≤ 08:00`.
-- **Target Valid Time**: 2026-06-19 08:30.
-- **Check**: compliant.
+The model structure is:
 
-### Example 5: Revision Handling
-A record describes Valid Time 08:00 on 2026-06-18.
-- **Version 1 Issue Time**: 2026-06-19 02:00.
-- **Version 2 Issue Time**: 2026-06-19 10:00.
-- **Inference A**, with Reference Time 2026-06-19 06:00: only Version 1 is eligible.
-- **Inference B**, with Reference Time 2026-06-19 12:00: both versions are eligible.
+`Historical Load → Load HH1`
 
-A predefined deterministic rule, such as selecting the latest eligible version, determines which record is used.
+### SISO Example 2: Forecast from One Future Covariate
 
-### Example 6: Out-of-Sample Backtesting
-A model is trained using labels whose Valid Times end on 2026-05-31. The completed model is frozen before the first simulated test inference.
-- Each simulated inference uses its own historical Reference Time.
-- Only input records satisfying `Input Record Issue Time ≤ Reference Time` are eligible.
-- Realised target values are never used as model inputs.
+A model uses one temperature forecast series to predict one future load value.
 
-### Example 7: GB Electricity Intraday Prediction with Horizon 0
-A job runs at 08:15 on 2026-06-19. The current settlement period started at 08:00.
-- **Reference Time**: 2026-06-19 08:00.
-- **Input records**: all records used satisfy `Input Record Issue Time ≤ 08:00`.
-- **Forecast Issue Time**: 2026-06-19 08:15.
-- **Future Target Valid Times**: 08:30, 09:00, 09:30, and later settlement periods.
+| I/O Schema | Input | Output | Reference Time | Input Valid Time | Input Issue Time | Target Valid Time | Issue Time |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| SISO | Temperature forecast | GB Zone A load | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 07:40 | 2026-06-19 08:30 | 2026-06-19 08:15 |
 
-If horizon 0 is included, its Target Valid Time is 08:00.
+The temperature forecast is eligible because:
 
-Because the forecast is issued at 08:15, the horizon-0 output is published after its target settlement period has started. Its inputs may still satisfy the VRI input eligibility rule, but the output is not an ahead-of-time forecast.
+`Input Issue Time ≤ Reference Time`
 
-### Example 8: Cutoff and Label Completeness
+Its Valid Time may be later than the Reference Time because it is a future covariate.
+
+### SISO Example 3: Repeated Historical Inference
+
+A backtest evaluates a SISO model over three historical Reference Times.
+
+| I/O Schema | Input | Output | Number of logical inferences | Batch processing |
+| :--- | :--- | :--- | :--- | :--- |
+| SISO | One historical input series per inference | One forecast output per inference | 3 | The three rows may be processed together without changing the I/O schema |
+
+| Inference | A | B | C |
+| :--- | :--- | :--- | :--- |
+| **Reference Time** | 2026-06-01 08:00 | 2026-06-01 08:30 | 2026-06-01 09:00 |
+| **Target Valid Time** | 2026-06-01 08:30 | 2026-06-01 09:00 | 2026-06-01 09:30 |
+
+Each column represents one logical SISO inference with its own Reference Time.
+
+### SIMO Example 1: Multi-Horizon Autoregressive Forecast
+
+A model uses one logical lagged load sequence to jointly forecast the next four periods.
+
+| I/O Schema | Input | Outputs | Reference Time | Forecast Schedule |
+| :--- | :--- | :--- | :--- | :--- |
+| SIMO | `[y(t-3), y(t-2), y(t-1), y(t)]` | `y(t+1)`, `y(t+2)`, `y(t+3)`, `y(t+4)` | `t` | Maps H1, H2, H3, and H4 to their Target Valid Times |
+
+The lagged sequence is treated as one logical model input.
+
+### SIMO Example 2: One Weather Input, Two Solar Outputs
+
+A model uses one solar-radiation forecast input to jointly predict two output series.
+
+| I/O Schema | Input | Outputs | Reference Time | Target Valid Time | Issue Time |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SIMO | Solar-radiation forecast | Grid-connected solar generation; embedded solar generation | 2026-06-19 08:00 | 2026-06-19 08:30 for both outputs | 2026-06-19 08:15 |
+
+The single input is mapped to two semantic output series.
+
+### SIMO Example 3: Horizon 0 and Future Horizons
+
+A model uses one historical load series and jointly produces three horizon outputs.
+
+| I/O Schema | Input | Outputs | Reference Time | Issue Time | Input eligibility |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| SIMO | Historical load | Load at HH0, HH1, and HH2 | 2026-06-19 08:00 | 2026-06-19 08:15 | Every input satisfies `Issue Time ≤ Reference Time` |
+
+| Horizon | HH0 | HH1 | HH2 |
+| :--- | :--- | :--- | :--- |
+| **Target Valid Time** | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 09:00 |
+
+The HH0 output is input-compliant, but it is not an ahead-of-time forecast because it is issued after the 08:00 settlement period has started.
+
+### MISO Example 1: Single-Horizon Load Forecast
+
+A model uses multiple inputs to forecast one future load value.
+
+| I/O Schema | Inputs | Output | Reference Time | Target Valid Time | Issue Time | Input eligibility |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| MISO | Historical load; temperature forecast; wind forecast | GB Zone A load | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 08:15 | Every input used satisfies `Issue Time ≤ Reference Time` |
+
+### MISO Example 2: Multi-Horizon Forecast of One Output Series
+
+A model uses multiple input series to forecast one load series across three Target Valid Times.
+
+| I/O Schema | Inputs | Output series | Multi-horizon | Reference Time | Target Valid Times | Issue Time |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| MISO | Historical load; temperature forecast; wind forecast | GB Zone A load | 3 | 2026-06-19 08:00 | 2026-06-19 08:30; 09:00; 09:30 | 2026-06-19 08:15 |
+
+This is MISO at the semantic-series level because multiple input series produce one output series across several horizons.
+
+### MISO Example 3: Inputs with Different Availability States
+
+A load model uses several inputs with different Valid Times and Issue Times.
+
+| I/O Schema | Output | Reference Time | Target Valid Time |
+| :--- | :--- | :--- | :--- |
+| MISO | GB Zone A load | 2026-06-19 08:00 | 2026-06-19 08:30 |
+
+| Input | Historical load | Temperature forecast | Wind forecast |
+| :--- | :--- | :--- | :--- |
+| **Valid Time** | 2026-06-19 07:30 | 2026-06-19 08:30 | 2026-06-19 08:30 |
+| **Issue Time** | 2026-06-19 07:55 | 2026-06-19 07:40 | 2026-06-19 08:05 |
+| **Eligible at Reference Time?** | Yes | Yes | No |
+
+The wind forecast is excluded because its Issue Time is later than the Reference Time.
+
+### MIMO Example 1: Multi-Horizon Tabular Output
+
+A half-hourly solar-generation model uses two inputs and jointly produces three horizon outputs.
+
+| I/O Schema | Inputs | Outputs | Reference Time |
+| :--- | :--- | :--- | :--- |
+| MIMO | Solar-radiation forecast; cloud-cover forecast | Solar generation HH0; HH1; HH2 | 2026-06-19 08:30 |
+
+The testing input row is:
+
+| Reference Time | Solar Radiation Forecast | Cloud Cover Forecast |
+| :--- | ---: | ---: |
+| 2026-06-19 08:30 | 410 W/m² | 48% |
+
+After inference:
+
+| Reference Time | Solar Generation HH0 | Solar Generation HH1 | Solar Generation HH2 |
+| :--- | ---: | ---: | ---: |
+| 2026-06-19 08:30 | 150 MW | 190 MW | 225 MW |
+
+The Forecast Schedule resolves the outputs as follows:
+
+| Horizon | HH0 | HH1 | HH2 |
+| :--- | :--- | :--- | :--- |
+| **Target Valid Time** | 2026-06-19 08:30 | 2026-06-19 09:00 | 2026-06-19 09:30 |
+| **Solar Generation Forecast** | 150 MW | 190 MW | 225 MW |
+
+### MIMO Example 2: Multiple Semantic Outputs
+
+A model uses multiple inputs to jointly predict load and price for GB Zone A.
+
+| I/O Schema | Inputs | Outputs | Reference Time | Target Valid Time | Issue Time | Input eligibility |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| MIMO | Historical load; historical price; temperature forecast; wind forecast | GB Zone A load; GB Zone A price | 2026-06-19 08:00 | 2026-06-19 08:30 for both outputs | 2026-06-19 08:15 | Every input used satisfies `Issue Time ≤ Reference Time` |
+
+### MIMO Example 3: Multiple Zones and Multiple Horizons
+
+A model jointly forecasts load for Zone A and Zone B for each of the next two days.
+
+| I/O Schema | Inputs | Output series | Multi-horizon | Reference Time | Target Valid Times | Input eligibility |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| MIMO | Historical load for Zone A; historical load for Zone B; weather forecast for Zone A; weather forecast for Zone B | Zone A load; Zone B load | 2 | 2026-06-19 03:00 | 2026-06-20; 2026-06-21 | Every input used satisfies `Issue Time ≤ 2026-06-19 03:00` |
+
+The model produces four forecast values:
+
+| Output series | Zone A load | Zone A load | Zone B load | Zone B load |
+| :--- | :--- | :--- | :--- | :--- |
+| **Target Valid Time** | 2026-06-20 | 2026-06-21 | 2026-06-20 | 2026-06-21 |
+
+## Additional VRI Examples
+
+### Example: Cutoff and Label Completeness
+
 A training dataset is constructed with:
 
 `Cutoff = 2026-06-19 08:30`
 
-The dataset contains multiple historical samples, each with its own Reference Time.
-
-For every input record used by a sample:
-
-`Input Record Issue Time ≤ Sample Reference Time`
-
-The Cutoff does not replace the sample Reference Time. It represents the latest data state available when the training dataset is constructed.
-
-For a multi-horizon sample, every required label must satisfy:
-
-`Required Label Issue Time ≤ Cutoff`
+| Cutoff | Sample Reference Times | Input eligibility | Label completeness |
+| :--- | :--- | :--- | :--- |
+| 2026-06-19 08:30 | Multiple historical Reference Times | Every input satisfies `Issue Time ≤ Sample Reference Time` | Every required label satisfies `Label Issue Time ≤ Cutoff` |
 
 Samples whose required labels are not yet available by the Cutoff are excluded.
 
-For a regular time grid where labels are available immediately at their Target Valid Times, this may reduce to:
+For a regular half-hourly schedule where labels are available immediately at their Target Valid Times:
 
-`Latest Training Reference Time = Cutoff − Maximum Horizon × Time Step`
+`Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
 
-This fixed-step formula is only a special case. When labels are published later or the Forecast Schedule is irregular, label availability must be evaluated using the actual Issue Times of the required labels.
+This is only a special case. When labels are published later or the Forecast Schedule is irregular, label availability must be evaluated using the actual Issue Times of the required labels.
 
-### Example 9: Decision Time Is Outside VRI
+### Example: Decision Time Is Outside VRI
+
 A trader acts at 10:00 after receiving a forecast.
+
+| Forecast governed by VRI | Later business decision |
+| :--- | :--- |
+| Input eligibility; Reference Time; Valid Time; Issue Time; Target Valid Time | Trader acts at 10:00 |
 
 VRI governs the temporal semantics of the prediction and its inputs. It does not govern the later business decision.
 
