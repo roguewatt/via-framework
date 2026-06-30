@@ -570,9 +570,9 @@ This is MIMO because multiple input values produce multiple output values.
 
 ## Additional VRI Examples
 
-### Example: Repeated Historical Inference
+### Example: Batched Historical Inference
 
-A backtest evaluates a model over several historical Reference Times.
+A backtest evaluates the model at several historical Reference Times.
 
 | Reference Time | Valid Time |
 | :--- | :--- |
@@ -580,9 +580,9 @@ A backtest evaluates a model over several historical Reference Times.
 | 2026-06-01 08:30 | 2026-06-01 09:00 |
 | 2026-06-01 09:00 | 2026-06-01 09:30 |
 
-Each row represents a separate logical sample with its own Reference Time.
+Each row is a separate logical sample with its own Reference Time.
 
-Processing the rows together in one batch does not change their Reference Times or the model's I/O schema.
+The samples may be processed together in one batch. Batching does not merge their Reference Times or change the model's I/O schema.
 
 ---
 
