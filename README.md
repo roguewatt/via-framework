@@ -26,7 +26,7 @@ Issue Time is the time at which a record, prediction, or record version becomes 
 | :--- | :--- | :--- | :--- |
 | Outturn          | 2026-06-18 08:00:00 | 2026-06-19 02:00:00 | Published at 02:00 on the following day |
 | Outturn revision | 2026-06-18 08:00:00 | 2026-06-19 10:00:00 | Revised value published later the same day |
-| Forecast         | 2026-06-18 08:00:00 | 2026-06-19 08:15:00 | Forecast released at 08:15 the day before |
+| Forecast         | 2026-06-20 08:00:00 | 2026-06-19 08:15:00 | Forecast released at 08:15 the day before |
 
 Each revision or forecast release is a separate record version with its own Issue Time.
 
@@ -64,7 +64,21 @@ The Forecast Schedule maps each output horizon to its Valid Time:
 | 08:30 | HH1 | 09:00 | 190 MW |
 | 08:30 | HH2 | 09:30 | 225 MW |
 
-Reference Time defines the information state of the sample. The Forecast Schedule maps each output horizon to its Valid Time.
+The Forecast Schedule maps each output horizon from the sample's Reference Time to its Valid Time.
+
+### Forecast Schedule
+
+A Forecast Schedule defines how each forecast horizon maps from a sample's Reference Time to an output Valid Time. For a regular half-hourly schedule:
+
+| Reference Time | Horizon | Valid Time |
+| :--- | :--- | :--- |
+| 08:30 | H0 | 08:30 |
+| 08:30 | H1 | 09:00 |
+| 08:30 | H2 | 09:30 |
+
+The schedule may also be irregular. A horizon therefore represents an ordered output position and does not necessarily imply a fixed elapsed duration.
+
+Forecast Schedule is a forecasting-system configuration, not an additional VRI time concept.
 
 ### Cutoff
 Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples or inferences within that run may have many Reference Times.
@@ -76,7 +90,7 @@ Cutoff constrains:
 - where a training or evaluation dataset must end.
 
 Cutoff does not replace Reference Time.
-- **Reference Time** governs the information state of an individual sample or inference.
+- **Reference Time** governs the information state of an individual sample.
 - **Cutoff** governs the overall data boundary of the run.
 
 ---
@@ -89,8 +103,8 @@ For each sample:
 
 - A historical point on the Valid Time axis is assigned as the sample's Reference Time.
 - Every input record used by the sample satisfies `Issue Time ≤ Reference Time`.
-- The label is the realised value corresponding to the sample's Valid Time.
-- The label may be issued after the Reference Time and is attached later as an outcome for model fitting.
+- Labels are realised outcomes associated with the required Valid Times.
+- Labels may be issued after the Reference Time and attached later for model fitting.
 - The model architecture, such as XGBoost, MLP, TCN, or LSTM, is independent of VRI.
 
 ### Label Completeness and Past-Covariate Availability
@@ -126,7 +140,7 @@ This is a special case. For delayed labels or irregular Forecast Schedules, use 
 
 Testing follows the same input eligibility rule as training. A model may be evaluated through historical inference or used for live prediction.
 
-- Each test sample or inference has its own Reference Time.
+- Each test or live sample has one Reference Time.
 - Only input records satisfying `Issue Time ≤ Reference Time` are eligible.
 - Future covariates are allowed when their record versions were issued by the Reference Time.
 - Realised target values are never used as model inputs.
@@ -427,7 +441,7 @@ This is MISO because multiple tabular input values produce one output value.
 
 ### MISO Example 2: Sequential Multi-Input Forecast
 
-A sequential model uses one multivariate input sequence containing load, temperature, and wind to forecast one future load value.
+A sequential model uses a multivariate sequence of load, temperature, and wind values to forecast one future load value.
 
 | I/O Schema | Inputs | Outputs |
 | :--- | :--- | :--- |
@@ -635,7 +649,7 @@ The later business Decision Time is outside VRI.
 
 A VRI-compliant system should be able to reconstruct, for each logical inference:
 - Reference Time
-- Target Valid Time
+- Valid Time
 - Forecast horizon
 - Applicable Forecast Schedule
 - Input record identifiers with their Valid Times and Issue Times
