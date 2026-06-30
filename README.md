@@ -20,7 +20,9 @@ Valid Time is the business-defined time point or interval that a record or predi
 - For a weather forecast for tomorrow, the Valid Time is the future time described by that forecast.
 
 ### Issue Time
-Issue Time is the time at which a record, prediction, or record version becomes available to its intended consumer.
+Issue Time is the earliest time at which a specific record, prediction, or record version becomes available to its intended consumer through the declared production data path.
+
+For a forecasting system, Issue Time should represent the earliest time at which the record was queryable and usable through the normal production workflow. Source publication time, ingestion time, and system-availability time may differ. When these timestamps differ, the Issue Time used for VRI eligibility must reflect the availability boundary relevant to the intended consumer. For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a model running at 08:03 has no visibility to use it. The availability convention used to derive Issue Time must be declared and applied consistently in training, backtesting, and live inference.
 
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
@@ -35,6 +37,12 @@ Each revision or forecast release is a separate record version with its own Issu
 Reference Time is the temporal anchor of a forecasting sample. It defines the information state used to construct that sample.
 - Each training, validation, test, or live sample has one Reference Time.
 - Every input value included in the sample must satisfy: `Issue Time ≤ Reference Time`
+
+Reference Time is related to, but not always identical to, the forecast origin.
+- **Forecast origin** is the point on the forecasting timeline from which future horizons are measured.
+- **Reference Time** defines the information state used to construct the forecasting sample.
+
+In many forecasting systems, the two timestamps are equal. They may differ when the model's forecast horizon is anchored to a market, operational, or product-specific time rather than directly to the latest information state.
 
 For example, consider a half-hourly solar-generation model using `Solar Radiation Forecast` and `Cloud Cover Forecast` as input features. The model jointly produces `HH0`, `HH1`, and `HH2` as separate outputs.
 
@@ -658,22 +666,35 @@ The later business Decision Time is outside VRI.
 ## Auditing
 
 A VRI-compliant system should be able to reconstruct, for each logical inference:
+
 - Reference Time
 - Valid Time
 - Forecast horizon
 - Applicable Forecast Period Mapping
 - Input record identifiers with their Valid Times and Issue Times
 - Selected record versions and the deterministic rule used to select them
-- Output record identifiers with their Valid Times and Issue Times
 - Model version
+- Model-training run identifier
+- Training-data cutoff
+- Training-window boundaries
+- Feature-definition version
+- Hyperparameter or configuration version
+- Model-selection or promotion rule
+- Source-data version
+- Code or artifact version
+- Output record identifiers with their Valid Times and Issue Times
 - Run Cutoff
 
 For training datasets, the system should additionally record:
-- Sample Reference Time
+
+- Sample Reference Times
 - Target labels with their Valid Times and Issue Times
 - Dataset Cutoff
-- Training and test periods
+- Training, validation, and test periods
 - Target-buffer or label-completeness rule
+- Retraining policy
+- Feature-selection procedure
+- Hyperparameter-selection procedure
 
 ---
 
