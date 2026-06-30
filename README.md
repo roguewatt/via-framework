@@ -56,7 +56,7 @@ After inference:
 | :--- | ---: | ---: | ---: |
 | 08:30 | 150 MW | 190 MW | 225 MW |
 
-The Forecast Schedule maps each output horizon to its Valid Time:
+The Forecast Period Mapping assigns each output horizon a forecast period, which determines its Valid Time relative to the sample's Reference Time:
 
 | Reference Time | Horizon | Valid Time | Solar Generation Forecast |
 | :--- | :--- | :--- | ---: |
@@ -64,19 +64,29 @@ The Forecast Schedule maps each output horizon to its Valid Time:
 | 08:30 | HH1 | 09:00 | 190 MW |
 | 08:30 | HH2 | 09:30 | 225 MW |
 
-The Forecast Schedule maps each output horizon from the sample's Reference Time to its Valid Time.
+### Forecast Period Mapping
 
-### Forecast Schedule
+A Forecast Period Mapping assigns a forecast period to each output horizon. The forecast period is the interval between the sample's Reference Time and the output's Valid Time:
 
-A Forecast Schedule defines how each forecast horizon maps from a sample's Reference Time to an output Valid Time. For a regular half-hourly schedule:
+`Valid Time = Reference Time + Forecast Period`
 
-| Reference Time | Horizon | Valid Time |
+For a regular half-hourly forecast:
+
+| Horizon | Forecast Period |
+| :--- | :--- |
+| H0 | 0 minutes |
+| H1 | 30 minutes |
+| H2 | 60 minutes |
+
+For a sample with Reference Time `08:30`, the outputs therefore resolve to:
+
+| Horizon | Forecast Period | Valid Time |
 | :--- | :--- | :--- |
-| 08:30 | H0 | 08:30 |
-| 08:30 | H1 | 09:00 |
-| 08:30 | H2 | 09:30 |
+| H0 | 0 minutes | 08:30 |
+| H1 | 30 minutes | 09:00 |
+| H2 | 60 minutes | 09:30 |
 
-The schedule may also be irregular. A horizon therefore represents an ordered output position and does not necessarily imply a fixed elapsed duration. Forecast Schedule is a forecasting-system configuration, not an additional VRI time concept.
+A Forecast Period Mapping may be regular or irregular. A horizon is therefore an ordered output identifier and does not necessarily imply a fixed elapsed duration by itself.
 
 ### Cutoff
 Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples or inferences within that run may have many Reference Times.
@@ -130,7 +140,7 @@ For a regular half-hourly schedule where labels are issued immediately at their 
 
 `Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
 
-This is a special case. For delayed labels or irregular Forecast Schedules, use the actual label-completeness rule:
+This is a special case. For delayed labels or irregular Forecast Period Mapping, use the actual label-completeness rule:
 
 `Required Label Issue Time ≤ Cutoff`
 
@@ -159,7 +169,7 @@ Multiple inferences may be processed individually or together in a batch. The nu
 - an evaluation may contain multiple inferences;
 - each inference may use a single-horizon or multi-horizon output structure.
 
-Predictions are mapped to their Valid Times through the Forecast Schedule and may then be evaluated against realised values.
+The Forecast Period Mapping assigns each prediction its Valid Time, after which the prediction may be evaluated against the corresponding realised value.
 
 ---
 
@@ -170,7 +180,7 @@ Multi-horizon forecasting produces values for multiple Valid Times:
 
 `y(t+1), y(t+2), ..., y(t+H)`
 
-A horizon is an ordered position in the Forecast Schedule. It does not necessarily represent a fixed elapsed duration.
+A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the sample's Reference Time.
 
 Multi-horizon describes the temporal coverage of a forecast. It is independent of the number of input and output dimensions presented to the model.
 
@@ -336,7 +346,7 @@ After inference:
 | :--- | ---: | ---: | ---: |
 | 2026-06-19 08:30 | 25,850 MW | 26,050 MW | 26,200 MW |
 
-The Forecast Schedule maps the outputs to:
+The Forecast Period Mapping assigns each output its corresponding Valid Time:
 
 | Reference Time | Horizon | Valid Time | Load Forecast |
 | :--- | :--- | :--- | ---: |
@@ -627,7 +637,7 @@ For a regular half-hourly schedule where labels are available immediately at the
 
 `Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
 
-This is a special case. When labels are issued later or the Forecast Schedule is irregular, completeness must be evaluated using the actual Label Issue Times.
+This is a special case. When labels are issued later or the Forecast Period Mapping is irregular, completeness must be evaluated using the actual Label Issue Times.
 
 ---
 
@@ -651,7 +661,7 @@ A VRI-compliant system should be able to reconstruct, for each logical inference
 - Reference Time
 - Valid Time
 - Forecast horizon
-- Applicable Forecast Schedule
+- Applicable Forecast Period Mapping
 - Input record identifiers with their Valid Times and Issue Times
 - Selected record versions and the deterministic rule used to select them
 - Output record identifiers with their Valid Times and Issue Times
