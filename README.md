@@ -112,7 +112,9 @@ A training sample may be included only when all required labels are available by
 
 This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the sample's Reference Time.
 
-An observation is not automatically eligible because its Valid Time is earlier than the Reference Time. It must still satisfy: `Issue Time ≤ Sample Reference Time`
+An observation is not automatically eligible because its Valid Time is earlier than the Reference Time. It must still satisfy: 
+
+`Issue Time ≤ Sample Reference Time`
 
 For each input series, the input-selection policy must define:
 
