@@ -175,8 +175,6 @@ Multi-horizon and I/O schema describe different aspects of the model:
 
 ---
 
-## Examples
-
 ## I/O Schema Examples
 
 The examples below describe the input and output structures presented to a forecasting model. The interpretation of an input depends on the model structure:
