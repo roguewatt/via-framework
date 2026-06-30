@@ -177,165 +177,416 @@ Multi-horizon and I/O schema describe different aspects of the model:
 
 ## Examples
 
-### SISO Example 1: Single-Horizon Autoregressive Forecast
+## I/O Schema Examples
 
-A model uses one historical load series to forecast one future load value.
+The examples below describe the input and output structures presented to a forecasting model. The interpretation of an input depends on the model structure:
 
-| I/O Schema | Input | Output | Reference Time | Target Valid Time | Issue Time | Input eligibility |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| SISO | Historical load | Load at the next settlement period | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 08:15 | The historical load used satisfies `Issue Time ≤ Reference Time` |
+- In a **tabular** setup, each sample is represented as one row containing its inputs and outputs. The row has one Reference Time, while individual input and output values may describe different Valid Times.
 
-The model structure is:
+- In a **sequential** setup, each sample contains an ordered input sequence and one or more outputs. The sample has one Reference Time, while each position in the input sequence and each output has its own Valid Time.
 
-`Historical Load → Load HH1`
+Every sample used for training, validation, testing, or live inference has one Reference Time.
 
-### SISO Example 2: Forecast from One Future Covariate
+Any input used to construct a sample must satisfy: `Issue Time ≤ Reference Time`
 
-A model uses one temperature forecast series to predict one future load value.
+In the tabular examples, `t` denotes the sample's Reference Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Reference Time.
 
-| I/O Schema | Input | Output | Reference Time | Input Valid Time | Input Issue Time | Target Valid Time | Issue Time |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| SISO | Temperature forecast | GB Zone A load | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 07:40 | 2026-06-19 08:30 | 2026-06-19 08:15 |
+---
 
-The temperature forecast is eligible because:
+### SISO Example 1: Tabular Single-Horizon Autoregressive Forecast
 
-`Input Issue Time ≤ Reference Time`
+A tabular model uses one historical load value to forecast one future load value.
 
-Its Valid Time may be later than the Reference Time because it is a future covariate.
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| SISO | Load at `t-1` | Load at `t+1` |
 
-### SISO Example 3: Repeated Historical Inference
+Training samples may look like:
 
-A backtest evaluates a SISO model over three historical Reference Times.
-
-| I/O Schema | Input | Output | Number of logical inferences | Batch processing |
-| :--- | :--- | :--- | :--- | :--- |
-| SISO | One historical input series per inference | One forecast output per inference | 3 | The three rows may be processed together without changing the I/O schema |
-
-| Inference | A | B | C |
-| :--- | :--- | :--- | :--- |
-| **Reference Time** | 2026-06-01 08:00 | 2026-06-01 08:30 | 2026-06-01 09:00 |
-| **Target Valid Time** | 2026-06-01 08:30 | 2026-06-01 09:00 | 2026-06-01 09:30 |
-
-Each column represents one logical SISO inference with its own Reference Time.
-
-### SIMO Example 1: Multi-Horizon Autoregressive Forecast
-
-A model uses one logical lagged load sequence to jointly forecast the next four periods.
-
-| I/O Schema | Input | Outputs | Reference Time | Forecast Schedule |
-| :--- | :--- | :--- | :--- | :--- |
-| SIMO | `[y(t-3), y(t-2), y(t-1), y(t)]` | `y(t+1)`, `y(t+2)`, `y(t+3)`, `y(t+4)` | `t` | Maps H1, H2, H3, and H4 to their Target Valid Times |
-
-The lagged sequence is treated as one logical model input.
-
-### SIMO Example 2: One Weather Input, Two Solar Outputs
-
-A model uses one solar-radiation forecast input to jointly predict two output series.
-
-| I/O Schema | Input | Outputs | Reference Time | Target Valid Time | Issue Time |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| SIMO | Solar-radiation forecast | Grid-connected solar generation; embedded solar generation | 2026-06-19 08:00 | 2026-06-19 08:30 for both outputs | 2026-06-19 08:15 |
-
-The single input is mapped to two semantic output series.
-
-### SIMO Example 3: Horizon 0 and Future Horizons
-
-A model uses one historical load series and jointly produces three horizon outputs.
-
-| I/O Schema | Input | Outputs | Reference Time | Issue Time | Input eligibility |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| SIMO | Historical load | Load at HH0, HH1, and HH2 | 2026-06-19 08:00 | 2026-06-19 08:15 | Every input satisfies `Issue Time ≤ Reference Time` |
-
-| Horizon | HH0 | HH1 | HH2 |
-| :--- | :--- | :--- | :--- |
-| **Target Valid Time** | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 09:00 |
-
-The HH0 output is input-compliant, but it is not an ahead-of-time forecast because it is issued after the 08:00 settlement period has started.
-
-### MISO Example 1: Single-Horizon Load Forecast
-
-A model uses multiple inputs to forecast one future load value.
-
-| I/O Schema | Inputs | Output | Reference Time | Target Valid Time | Issue Time | Input eligibility |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MISO | Historical load; temperature forecast; wind forecast | GB Zone A load | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 08:15 | Every input used satisfies `Issue Time ≤ Reference Time` |
-
-### MISO Example 2: Multi-Horizon Forecast of One Output Series
-
-A model uses multiple input series to forecast one load series across three Target Valid Times.
-
-| I/O Schema | Inputs | Output series | Multi-horizon | Reference Time | Target Valid Times | Issue Time |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MISO | Historical load; temperature forecast; wind forecast | GB Zone A load | 3 | 2026-06-19 08:00 | 2026-06-19 08:30; 09:00; 09:30 | 2026-06-19 08:15 |
-
-This is MISO at the semantic-series level because multiple input series produce one output series across several horizons.
-
-### MISO Example 3: Inputs with Different Availability States
-
-A load model uses several inputs with different Valid Times and Issue Times.
-
-| I/O Schema | Output | Reference Time | Target Valid Time |
-| :--- | :--- | :--- | :--- |
-| MISO | GB Zone A load | 2026-06-19 08:00 | 2026-06-19 08:30 |
-
-| Input | Historical load | Temperature forecast | Wind forecast |
-| :--- | :--- | :--- | :--- |
-| **Valid Time** | 2026-06-19 07:30 | 2026-06-19 08:30 | 2026-06-19 08:30 |
-| **Issue Time** | 2026-06-19 07:55 | 2026-06-19 07:40 | 2026-06-19 08:05 |
-| **Eligible at Reference Time?** | Yes | Yes | No |
-
-The wind forecast is excluded because its Issue Time is later than the Reference Time.
-
-### MIMO Example 1: Multi-Horizon Tabular Output
-
-A half-hourly solar-generation model uses two inputs and jointly produces three horizon outputs.
-
-| I/O Schema | Inputs | Outputs | Reference Time |
-| :--- | :--- | :--- | :--- |
-| MIMO | Solar-radiation forecast; cloud-cover forecast | Solar generation HH0; HH1; HH2 | 2026-06-19 08:30 |
-
-The testing input row is:
-
-| Reference Time | Solar Radiation Forecast | Cloud Cover Forecast |
+| Reference Time | Load `t-1` | Load `t+1` |
 | :--- | ---: | ---: |
-| 2026-06-19 08:30 | 410 W/m² | 48% |
+| 2026-06-19 07:00 | 24,100 MW | 24,900 MW |
+| 2026-06-19 07:30 | 24,450 MW | 25,300 MW |
+| 2026-06-19 08:00 | 24,900 MW | 25,650 MW |
+
+A test input sample may look like:
+
+| Reference Time | Load `t-1` |
+| :--- | ---: |
+| 2026-06-19 08:30 | 25,300 MW |
 
 After inference:
 
-| Reference Time | Solar Generation HH0 | Solar Generation HH1 | Solar Generation HH2 |
-| :--- | ---: | ---: | ---: |
-| 2026-06-19 08:30 | 150 MW | 190 MW | 225 MW |
+| Reference Time | Valid Time | Load Forecast |
+| :--- | :--- | ---: |
+| 2026-06-19 08:30 | 2026-06-19 09:00 | 25,650 MW |
 
-The Forecast Schedule resolves the outputs as follows:
+This is SISO because one tabular input value produces one output value.
 
-| Horizon | HH0 | HH1 | HH2 |
+---
+
+### SISO Example 2: Tabular Forecast from One Future Covariate
+
+A tabular model uses one temperature forecast value to predict one future load value.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| SISO | Temperature forecast | GB Zone A load |
+
+A training sample may look like:
+
+| Reference Time | Temperature Forecast | Load |
+| :--- | ---: | ---: |
+| 2026-06-19 08:00 | 18.1°C | 25,650 MW |
+
+The input and output describe the following Valid Times:
+
+| Reference Time | Item | Valid Time | Issue Time |
 | :--- | :--- | :--- | :--- |
-| **Target Valid Time** | 2026-06-19 08:30 | 2026-06-19 09:00 | 2026-06-19 09:30 |
-| **Solar Generation Forecast** | 150 MW | 190 MW | 225 MW |
+| 2026-06-19 08:00 | Temperature forecast | 2026-06-19 08:30 | 2026-06-19 07:40 |
+| 2026-06-19 08:00 | Load label | 2026-06-19 08:30 | 2026-06-19 08:35 |
 
-### MIMO Example 2: Multiple Semantic Outputs
+The temperature forecast is eligible because:
 
-A model uses multiple inputs to jointly predict load and price for GB Zone A.
+`2026-06-19 07:40 ≤ 2026-06-19 08:00`
 
-| I/O Schema | Inputs | Outputs | Reference Time | Target Valid Time | Issue Time | Input eligibility |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MIMO | Historical load; historical price; temperature forecast; wind forecast | GB Zone A load; GB Zone A price | 2026-06-19 08:00 | 2026-06-19 08:30 for both outputs | 2026-06-19 08:15 | Every input used satisfies `Issue Time ≤ Reference Time` |
+Its Valid Time is later than the Reference Time because it is a future covariate.
+
+---
+
+### SISO Example 3: Sequential Single-Horizon Forecast
+
+A sequential model uses one historical load sequence to forecast one future load value.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| SISO | Historical load sequence | Future load |
+
+A training sample contains one ordered input sequence:
+
+| Reference Time | Valid Time | Historical Load |
+| :--- | :--- | ---: |
+| 2026-06-19 08:00 | 2026-06-19 06:00 | 23,800 MW |
+| 2026-06-19 08:00 | 2026-06-19 06:30 | 24,100 MW |
+| 2026-06-19 08:00 | 2026-06-19 07:00 | 24,450 MW |
+| 2026-06-19 08:00 | 2026-06-19 07:30 | 24,900 MW |
+
+The corresponding output is:
+
+| Reference Time | Valid Time | Future Load |
+| :--- | :--- | ---: |
+| 2026-06-19 08:00 | 2026-06-19 08:30 | 25,300 MW |
+
+A test input sample may contain:
+
+| Reference Time | Valid Time | Historical Load |
+| :--- | :--- | ---: |
+| 2026-06-19 08:30 | 2026-06-19 06:30 | 24,100 MW |
+| 2026-06-19 08:30 | 2026-06-19 07:00 | 24,450 MW |
+| 2026-06-19 08:30 | 2026-06-19 07:30 | 24,900 MW |
+| 2026-06-19 08:30 | 2026-06-19 08:00 | 25,300 MW |
+
+After inference:
+
+| Reference Time | Valid Time | Load Forecast |
+| :--- | :--- | ---: |
+| 2026-06-19 08:30 | 2026-06-19 09:00 | 25,650 MW |
+
+This is SISO because one ordered load sequence produces one future load value.
+
+---
+
+### SIMO Example 1: Tabular Multi-Horizon Forecast
+
+A tabular model uses one temperature forecast value to jointly forecast load across three horizons.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| SIMO | Temperature forecast | Load H1; Load H2; Load H3 |
+
+Training samples may look like:
+
+| Reference Time | Temperature Forecast | Load H1 | Load H2 | Load H3 |
+| :--- | ---: | ---: | ---: | ---: |
+| 2026-06-19 07:00 | 17.2°C | 24,900 MW | 25,300 MW | 25,650 MW |
+| 2026-06-19 07:30 | 17.6°C | 25,300 MW | 25,650 MW | 25,900 MW |
+| 2026-06-19 08:00 | 18.1°C | 25,650 MW | 25,900 MW | 26,100 MW |
+
+A test input sample may look like:
+
+| Reference Time | Temperature Forecast |
+| :--- | ---: |
+| 2026-06-19 08:30 | 18.5°C |
+
+After inference:
+
+| Reference Time | Load H1 | Load H2 | Load H3 |
+| :--- | ---: | ---: | ---: |
+| 2026-06-19 08:30 | 24,900 MW | 25,300 MW | 25,650 MW |
+
+And we can remap it to:
+
+| Reference Time | Horizon | Valid Time | Load Forecast |
+| :--- | :--- | :--- | ---: |
+| 2026-06-19 08:30 | H1 | 2026-06-19 09:00 | 25,850 MW |
+| 2026-06-19 08:30 | H2 | 2026-06-19 09:30 | 26,050 MW |
+| 2026-06-19 08:30 | H3 | 2026-06-19 10:00 | 26,200 MW |
+
+This is SIMO because one tabular input value produces multiple output values.
+
+---
+
+### SIMO Example 2: Sequential Multi-Horizon Forecast
+
+A sequential model uses one historical load sequence to jointly forecast three future load values.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| SIMO | Historical load sequence | Load H1; Load H2; Load H3 |
+
+A training sample may look like:
+
+Input
+
+| Reference Time | Valid Time | Historical Load |
+| :--- | :--- | ---: |
+| 2026-06-19 08:00 | 2026-06-19 06:00 | 23,800 MW |
+|                  | 2026-06-19 06:30 | 24,100 MW |
+|                  | 2026-06-19 07:00 | 24,450 MW |
+|                  | 2026-06-19 07:30 | 24,900 MW |
+
+Output
+
+| Reference Time | Horizon | Valid Time | Load |
+| :--- | :--- | :--- | ---: |
+| 2026-06-19 08:00 | H1 | 2026-06-19 08:30 | 25,300 MW |
+|                  | H2 | 2026-06-19 09:00 | 25,650 MW |
+|                  | H3 | 2026-06-19 09:30 | 25,900 MW |
+
+This is SIMO because one ordered load sequence produces multiple future load values.
+
+---
+
+### SIMO Example 3: One Input and Two Output Variables
+
+A tabular model uses one solar-radiation forecast value to jointly predict two solar-generation variables.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| SIMO | Solar-radiation forecast | Grid-connected solar; embedded solar |
+
+A training sample may look like:
+
+| Reference Time | Solar-Radiation Forecast | Grid-Connected Solar | Embedded Solar |
+| :--- | ---: | ---: | ---: |
+| 2026-06-19 07:00 | 410 W/m² | 3,250 MW | 1,180 MW |
+| 2026-06-19 07:30 | 380 W/m² | 3,350 MW | 1,070 MW |
+| 2026-06-19 08:00 | 220 W/m² | 3,270 MW | 1,210 MW |
+
+The input and outputs describe the following Valid Times:
+
+| Reference Time | Item | Valid Time |
+| :--- | :--- | :--- |
+| 2026-06-19 08:00 | Solar-radiation forecast | 2026-06-19 08:30 |
+| 2026-06-19 08:00 | Grid-connected solar | 2026-06-19 08:30 |
+| 2026-06-19 08:00 | Embedded solar | 2026-06-19 08:30 |
+
+This is SIMO because one input value produces two output variables.
+
+---
+
+### MISO Example 1: Tabular Single-Horizon Load Forecast
+
+A tabular model uses several input values to forecast one future load value.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| MISO | Load at `t-1`; temperature forecast at `t+1`; wind forecast at `t+1` | Load at `t+1` |
+
+Training samples may look like:
+
+| Reference Time | Load `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` | Load `t+1` |
+| :--- | ---: | ---: | ---: | ---: |
+| 2026-06-19 07:00 | 24,100 MW | 17.2°C | 8,400 MW | 24,900 MW |
+| 2026-06-19 07:30 | 24,450 MW | 17.6°C | 8,250 MW | 25,300 MW |
+| 2026-06-19 08:00 | 24,900 MW | 18.1°C | 8,100 MW | 25,650 MW |
+
+A test input sample may look like:
+
+| Reference Time | Load `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` |
+| :--- | ---: | ---: | ---: |
+| 2026-06-19 08:30 | 25,300 MW | 18.5°C | 7,950 MW |
+
+After inference:
+
+| Reference Time | Valid Time | Load Forecast |
+| :--- | :--- | ---: |
+| 2026-06-19 08:30 | 2026-06-19 09:00 | 25,850 MW |
+
+This is MISO because multiple tabular input values produce one output value.
+
+---
+
+### MISO Example 2: Sequential Multi-Input Forecast
+
+A sequential model uses one multivariate input sequence containing load, temperature, and wind to forecast one future load value.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| MISO | Load, temperature, and wind feature channels | Future load |
+
+One training sample may look like:
+
+| Reference Time | Valid Time | Load | Temperature | Wind |
+| :--- | :--- | ---: | ---: | ---: |
+| 2026-06-19 08:00 | 2026-06-19 06:30 | 24,100 MW | 17.0°C | 8,600 MW |
+| 2026-06-19 08:00 | 2026-06-19 07:00 | 24,450 MW | 17.2°C | 8,400 MW |
+| 2026-06-19 08:00 | 2026-06-19 07:30 | 24,900 MW | 17.6°C | 8,250 MW |
+
+The corresponding output is:
+
+| Reference Time | Valid Time | Future Load |
+| :--- | :--- | ---: |
+| 2026-06-19 08:00 | 2026-06-19 08:30 | 25,300 MW |
+
+This is MISO because the sequential input contains multiple feature channels while the model produces one output value.
+
+---
+
+### MISO Example 3: Inputs with Different Availability States
+
+A tabular model is configured with historical load, a temperature forecast, and a wind forecast.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| MISO | Historical load; temperature forecast; wind forecast | Future load |
+
+For a sample with Reference Time `2026-06-19 08:00`:
+
+| Input | Valid Time | Issue Time |
+| :--- | :--- | :--- |
+| Historical load | 2026-06-19 07:30 | 2026-06-19 07:55 |
+| Temperature forecast | 2026-06-19 08:30 | 2026-06-19 07:40 |
+| Wind forecast | 2026-06-19 08:30 | 2026-06-19 08:05 |
+
+The historical load is eligible because:
+
+`2026-06-19 07:55 ≤ 2026-06-19 08:00`
+
+The temperature forecast is eligible because:
+
+`2026-06-19 07:40 ≤ 2026-06-19 08:00`
+
+The wind forecast issued at 08:05 is not eligible because:
+
+`2026-06-19 08:05 > 2026-06-19 08:00`
+
+An earlier eligible wind-forecast version must be used. If no eligible version exists, the sample must follow the model's defined missing-input policy or be excluded.
+
+---
+
+### MIMO Example 1: Tabular Multi-Input, Multi-Horizon Forecast
+
+A tabular model uses solar-radiation and cloud-cover forecast values to jointly forecast solar generation across three horizons.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| MIMO | Solar-radiation forecast; cloud-cover forecast | Solar H0; Solar H1; Solar H2 |
+
+Training samples may look like:
+
+| Reference Time | Solar-Radiation Forecast | Cloud-Cover Forecast | Solar H0 | Solar H1 | Solar H2 |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| 2026-06-19 08:00 | 320 W/m² | 65% | 110 MW | 145 MW | 180 MW |
+| 2026-06-19 08:30 | 410 W/m² | 48% | 150 MW | 190 MW | 225 MW |
+
+A test input sample may look like:
+
+| Reference Time | Solar-Radiation Forecast | Cloud-Cover Forecast |
+| :--- | ---: | ---: |
+| 2026-06-19 09:00 | 470 W/m² | 40% |
+
+After inference:
+
+| Reference Time | Horizon | Valid Time | Solar Forecast |
+| :--- | :--- | :--- | ---: |
+| 2026-06-19 09:00 | H0 | 2026-06-19 09:00 | 185 MW |
+| 2026-06-19 09:00 | H1 | 2026-06-19 09:30 | 220 MW |
+| 2026-06-19 09:00 | H2 | 2026-06-19 10:00 | 250 MW |
+
+This is MIMO because multiple tabular input values produce multiple output values.
+
+---
+
+### MIMO Example 2: Multiple Inputs and Multiple Output Variables
+
+A tabular model uses several input values to jointly predict future load and future price.
+
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| MIMO | Load at `t-1`; price at `t-1`; temperature forecast at `t+1`; wind forecast at `t+1` | Load at `t+1`; price at `t+1` |
+
+A training sample may look like:
+
+| Reference Time | Load `t-1` | Price `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` | Load `t+1` | Price `t+1` |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2026-06-19 08:00 | 24,900 MW | £72/MWh | 18.1°C | 8,100 MW | 25,650 MW | £75/MWh |
+
+The two outputs share the same Valid Time:
+
+| Reference Time | Output | Valid Time |
+| :--- | :--- | :--- |
+| 2026-06-19 08:00 | Load `t+1` | 2026-06-19 08:30 |
+| 2026-06-19 08:00 | Price `t+1` | 2026-06-19 08:30 |
+
+This is MIMO because multiple tabular input values produce multiple output variables.
+
+---
 
 ### MIMO Example 3: Multiple Zones and Multiple Horizons
 
-A model jointly forecasts load for Zone A and Zone B for each of the next two days.
+A tabular model jointly forecasts load for Zone A and Zone B across two future days.
 
-| I/O Schema | Inputs | Output series | Multi-horizon | Reference Time | Target Valid Times | Input eligibility |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| MIMO | Historical load for Zone A; historical load for Zone B; weather forecast for Zone A; weather forecast for Zone B | Zone A load; Zone B load | 2 | 2026-06-19 03:00 | 2026-06-20; 2026-06-21 | Every input used satisfies `Issue Time ≤ 2026-06-19 03:00` |
+| I/O Schema | Inputs | Outputs |
+| :--- | :--- | :--- |
+| MIMO | Zone A load; Zone B load; Zone A weather H1 and H2; Zone B weather H1 and H2 | Zone A H1; Zone A H2; Zone B H1; Zone B H2 |
 
-The model produces four forecast values:
+A test input sample may look like:
 
-| Output series | Zone A load | Zone A load | Zone B load | Zone B load |
-| :--- | :--- | :--- | :--- | :--- |
-| **Target Valid Time** | 2026-06-20 | 2026-06-21 | 2026-06-20 | 2026-06-21 |
+| Reference Time | Zone A Load | Zone B Load | Zone A Weather H1 | Zone A Weather H2 | Zone B Weather H1 | Zone B Weather H2 |
+| :--- | ---: | ---: | :--- | :--- | :--- | :--- |
+| 2026-06-19 03:00 | 12,400 MW | 9,800 MW | Mild | Warm | Cool | Mild |
+
+After inference:
+
+| Reference Time | Output | Valid Time | Forecast |
+| :--- | :--- | :--- | ---: |
+| 2026-06-19 03:00 | Zone A H1 | 2026-06-20 | 12,750 MW |
+| 2026-06-19 03:00 | Zone A H2 | 2026-06-21 | 12,900 MW |
+| 2026-06-19 03:00 | Zone B H1 | 2026-06-20 | 10,050 MW |
+| 2026-06-19 03:00 | Zone B H2 | 2026-06-21 | 10,200 MW |
+
+This is MIMO because multiple input values produce multiple output values.
+
+---
 
 ## Additional VRI Examples
+
+### Example: Repeated Historical Inference
+
+A backtest evaluates a model over several historical Reference Times.
+
+| Reference Time | Valid Time |
+| :--- | :--- |
+| 2026-06-01 08:00 | 2026-06-01 08:30 |
+| 2026-06-01 08:30 | 2026-06-01 09:00 |
+| 2026-06-01 09:00 | 2026-06-01 09:30 |
+
+Each row represents a separate logical sample with its own Reference Time.
+
+Processing the rows together in one batch does not change their Reference Times or the model's I/O schema.
+
+---
 
 ### Example: Cutoff and Label Completeness
 
@@ -343,27 +594,42 @@ A training dataset is constructed with:
 
 `Cutoff = 2026-06-19 08:30`
 
-| Cutoff | Sample Reference Times | Input eligibility | Label completeness |
+For every input used by a sample:
+
+`Issue Time ≤ Sample Reference Time`
+
+For every required label:
+
+`Label Issue Time ≤ Cutoff`
+
+| Reference Time | Label Valid Time | Label Issue Time | Cutoff |
 | :--- | :--- | :--- | :--- |
-| 2026-06-19 08:30 | Multiple historical Reference Times | Every input satisfies `Issue Time ≤ Sample Reference Time` | Every required label satisfies `Label Issue Time ≤ Cutoff` |
+| 2026-06-19 07:30 | 2026-06-19 08:00 | 2026-06-19 08:05 | 2026-06-19 08:30 |
+| 2026-06-19 07:30 | 2026-06-19 08:30 | 2026-06-19 09:00 | 2026-06-19 08:30 |
 
-Samples whose required labels are not yet available by the Cutoff are excluded.
+The first label is available by the Cutoff.
 
-For a regular half-hourly schedule where labels are available immediately at their Target Valid Times:
+The second label is not available by the Cutoff. If both labels are required, the sample is not label-complete and must be excluded.
+
+For a regular half-hourly schedule where labels are available immediately at their Valid Times:
 
 `Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
 
-This is only a special case. When labels are published later or the Forecast Schedule is irregular, label availability must be evaluated using the actual Issue Times of the required labels.
+This is a special case. When labels are issued later or the Forecast Schedule is irregular, completeness must be evaluated using the actual Label Issue Times.
+
+---
 
 ### Example: Decision Time Is Outside VRI
 
-A trader acts at 10:00 after receiving a forecast.
+A forecast is issued before a later business decision.
 
-| Forecast governed by VRI | Later business decision |
-| :--- | :--- |
-| Input eligibility; Reference Time; Valid Time; Issue Time; Target Valid Time | Trader acts at 10:00 |
+| Reference Time | Valid Time | Issue Time | Decision Time |
+| :--- | :--- | :--- | :--- |
+| 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 08:15 | 2026-06-19 10:00 |
 
-VRI governs the temporal semantics of the prediction and its inputs. It does not govern the later business decision.
+VRI governs the temporal semantics of the inputs, samples, and predictions.
+
+The later business Decision Time is outside VRI.
 
 ---
 
