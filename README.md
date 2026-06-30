@@ -15,28 +15,28 @@ It does not introduce a new forecasting methodology or temporal theory.
 ## Core Concepts
 
 ### Valid Time
-The business-defined time point or interval that a record or prediction describes. It is a property of the modelled reality, independent of when the record was created, collected, or published.
+Valid Time is the business-defined time point or interval that a record or prediction describes. It is a property of the modelled reality, independent of when the record was created, collected, or published.
 - For the half-hourly load of 08:00–08:30 on a given day, the Valid Time is 08:00, the start of the settlement period.
-- For a weather forecast for tomorrow, the Valid Time is the future time that the forecast describes.
+- For a weather forecast for tomorrow, the Valid Time is the future time described by that forecast.
 
 ### Issue Time
-The time at which a record or prediction becomes available to its intended consumer.
+Issue Time is the time at which a record, prediction, or record version becomes available to its intended consumer.
 
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
-| Outturn | 08:00 on 2026-06-18 | 2026-06-19 02:00 | Published at 02:00 on the following day |
-| Outturn (revised) | 08:00 on 2026-06-18 | 2026-06-19 10:00 | Revised value published later the same day |
-| Forecast | 08:00 on 2026-06-20 | 2026-06-19 08:15 | Forecast released at 08:15 the day before |
+| Outturn          | 2026-06-18 08:00:00 | 2026-06-19 02:00:00 | Published at 02:00 on the following day |
+| Outturn revision | 2026-06-18 08:00:00 | 2026-06-19 10:00:00 | Revised value published later the same day |
+| Forecast         | 2026-06-18 08:00:00 | 2026-06-19 08:15:00 | Forecast released at 08:15 the day before |
 
 Each revision or forecast release is a separate record version with its own Issue Time.
 
 ### Reference Time
 
-Reference Time is the temporal anchor of a sample or inference. It is the timestamp that defines the information state from which the sample's forecast outputs are produced.
-- Each sample or inference has one Reference Time.
-- Any input used by the sample must satisfy: `Issue Time ≤ Reference Time`
+Reference Time is the temporal anchor of a forecasting sample. It defines the information state used to construct that sample.
+- Each training, validation, test, or live sample has one Reference Time.
+- Every input value included in the sample must satisfy: `Issue Time ≤ Reference Time`
 
-For example, consider a half-hourly solar-generation model using `Solar Radiation Forecast` and `Cloud Cover Forecast` as input features. The model jointly produces `HH0`, `HH1`, and `HH2` as separate outputs. This forms a MIMO structure in which the multiple outputs represent different horizons of the same target series.
+For example, consider a half-hourly solar-generation model using `Solar Radiation Forecast` and `Cloud Cover Forecast` as input features. The model jointly produces `HH0`, `HH1`, and `HH2` as separate outputs.
 
 The final training row constructed by the I/O builder may be:
 
@@ -44,32 +44,32 @@ The final training row constructed by the I/O builder may be:
 | :--- | ---: | ---: | ---: | ---: | ---: |
 | 08:00 | 320 W/m² | 65% | 110 MW | 145 MW | 180 MW |
 
-The first testing input row contains the same input features, but no realised target outputs:
+The first test input row contains the same input features without realised outputs:
 
 | Reference Time | Solar Radiation Forecast | Cloud Cover Forecast |
 | :--- | ---: | ---: |
 | 08:30 | 410 W/m² | 48% |
 
-After inference, the model produces three outputs for that testing row:
+After inference:
 
 | Reference Time | Predicted Solar Generation HH0 | Predicted Solar Generation HH1 | Predicted Solar Generation HH2 |
 | :--- | ---: | ---: | ---: |
 | 08:30 | 150 MW | 190 MW | 225 MW |
 
-The Forecast Schedule then maps those outputs to their Target Valid Times:
+The Forecast Schedule maps each output horizon to its Valid Time:
 
-| Reference Time | Horizon | Target Valid Time | Solar Generation Forecast |
+| Reference Time | Horizon | Valid Time | Solar Generation Forecast |
 | :--- | :--- | :--- | ---: |
 | 08:30 | HH0 | 08:30 | 150 MW |
 | 08:30 | HH1 | 09:00 | 190 MW |
 | 08:30 | HH2 | 09:30 | 225 MW |
 
-Reference Time therefore defines the information state from which every forecast output for that sample or inference is produced. The Forecast Schedule resolves each output to its Target Valid Time using Reference Time as the schedule anchor.
+Reference Time defines the information state of the sample. The Forecast Schedule maps each output horizon to its Valid Time.
 
 ### Cutoff
-Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples or inferences contained within that run may have many Reference Times.
+Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples or inferences within that run may have many Reference Times.
 
-Cutoff determines the latest data state available to the run and therefore constrains:
+Cutoff constrains:
 - which record versions can be retrieved;
 - which samples can be constructed;
 - whether required labels are available;
@@ -83,107 +83,109 @@ Cutoff does not replace Reference Time.
 
 ## Training
 
-Training samples are constructed using the same input eligibility rule as inference.
+Training samples follow the same input eligibility rule as inference.
 
-For each training sample:
+For each sample:
 
-- A historical point on the Target Valid Time axis is assigned as the sample's Reference Time.
+- A historical point on the Valid Time axis is assigned as the sample's Reference Time.
 - Every input record used by the sample satisfies `Issue Time ≤ Reference Time`.
-- The label is the realised value corresponding to the sample's Target Valid Time.
+- The label is the realised value corresponding to the sample's Valid Time.
 - The label may be issued after the Reference Time and is attached later as an outcome for model fitting.
 - The model architecture, such as XGBoost, MLP, TCN, or LSTM, is independent of VRI.
 
 ### Label Completeness and Past-Covariate Availability
-
-A training sample may be included only when every required label is available by the dataset Cutoff. This is a label-completeness constraint, not an input eligibility constraint. Labels may have Issue Times later than the sample's Reference Time.
-
-A realised observation is not automatically eligible merely because its Valid Time is before the Reference Time. It may still be unavailable if its Issue Time is later than the Reference Time. Different input series may therefore have different latest eligible Valid Times for the same sample.
-
-For each input series, the forecasting strategy must define which eligible record version is selected, any required safety lag, whether an eligible forecast or nowcast replaces an unavailable outturn, how missing values are handled, and whether the series should be excluded when its historical availability cannot be reproduced reliably.
-
-Historical training samples must reproduce the source-specific availability state that existed at each sample's Reference Time. Later publications, revisions, corrected values, or backfilled observations must not be used unless they were already eligible at that Reference Time.
-
-For a regular half-hourly schedule with labels available immediately at their Target Valid Times, the following may be useful:
-
-`Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
-
-However, this formula is not general. If labels are published later, revised asynchronously, or governed by an irregular Forecast Schedule, the actual inclusion condition is:
+A training sample may be included only when all required labels are available by the dataset Cutoff: 
 
 `Required Label Issue Time ≤ Cutoff`
 
-The core VRI eligibility rule remains unchanged for every input record:
+This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the sample's Reference Time.
 
-`Issue Time ≤ Sample Reference Time`
+An observation is not automatically eligible because its Valid Time is earlier than the Reference Time. It must still satisfy: `Issue Time ≤ Sample Reference Time`
+
+For each input series, the input-selection policy must define:
+
+- which eligible record version is selected;
+- any required safety lag;
+- whether an eligible forecast or nowcast replaces an unavailable outturn;
+- how missing values are handled;
+- whether the sample is excluded when historical availability cannot be reproduced reliably.
+
+Historical samples must reproduce the source-specific availability state that existed at each Reference Time. Later publications, revisions, corrections, and backfills are ineligible unless they were already available at that time.
+
+For a regular half-hourly schedule where labels are issued immediately at their Valid Times:
+
+`Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
+
+This is a special case. For delayed labels or irregular Forecast Schedules, use the actual label-completeness rule:
+
+`Required Label Issue Time ≤ Cutoff`
 
 ---
 
-## Testing (Inference)
+## Testing & Inference
 
-Testing follows the same input eligibility rule as training. The model is evaluated by simulating historical inferences or running live predictions.
+Testing follows the same input eligibility rule as training. A model may be evaluated through historical inference or used for live prediction.
 
 - Each test sample or inference has its own Reference Time.
 - Only input records satisfying `Issue Time ≤ Reference Time` are eligible.
 - Future covariates are allowed when their record versions were issued by the Reference Time.
 - Realised target values are never used as model inputs.
-- Realised targets are used only for scoring after predictions have been generated.
+- Realised targets are attached only for scoring after predictions have been generated.
 - For out-of-sample backtesting, the completed model is frozen before the first simulated test inference.
 - No test-period samples or labels enter model fitting.
 
-### Single Inference vs. Multiple Inferences
+### Single Inference and Multiple Inferences
 
-- **Single inference**: one Reference Time, one logical model input, and one set of outputs. The output may be single-horizon or multi-horizon.
-- **Multiple inferences**: multiple logical model inputs, each governed by its own Reference Time. They may be processed individually or together in a batch.
+- **Single inference**: one Reference Time, one logical model input, and one set of outputs.
+- **Multiple inferences**: multiple logical model inputs, each governed by its own Reference Time.
 
-The resulting predictions are aligned with their Target Valid Times and scored against realised values. Multiple-inference evaluation is the standard structure for out-of-sample backtesting.
-
-It is orthogonal to multi-horizon:
+Multiple inferences may be processed individually or together in a batch. The number of inferences is independent of the number of forecast horizons:
 
 - one inference may produce one or multiple horizons;
 - an evaluation may contain multiple inferences;
 - each inference may use a single-horizon or multi-horizon output structure.
+
+Predictions are mapped to their Valid Times through the Forecast Schedule and may then be evaluated against realised values.
 
 ---
 
 ## Multi-horizon and I/O Schema
 
 ### Multi-horizon
-Multi-horizon means that one output series contains predictions for multiple Target Valid Times, such as:
+Multi-horizon forecasting produces values for multiple Valid Times:
 
 `y(t+1), y(t+2), ..., y(t+H)`
 
-The horizon represents an ordered position in the applicable Forecast Schedule. It does not necessarily represent a fixed elapsed duration.
+A horizon is an ordered position in the Forecast Schedule. It does not necessarily represent a fixed elapsed duration.
 
-Multi-horizon is independent of the number of semantic input and output series.
+Multi-horizon describes the temporal coverage of a forecast. It is independent of the number of input and output dimensions presented to the model.
 
 ### I/O Schema
 
-SISO, SIMO, MISO, and MIMO describe the logical input and output structure presented to a model.
+SISO, SIMO, MISO, and MIMO describe the logical structure presented to a model:
 
 - **SISO**: single input, single output
 - **SIMO**: single input, multiple outputs
 - **MISO**: multiple inputs, single output
 - **MIMO**: multiple inputs, multiple outputs
 
-Inputs and outputs may represent different semantic series or separately constructed model dimensions.
+Inputs and outputs may represent semantic variables or separately constructed model dimensions.
 
-A jointly generated multi-horizon target may therefore form a special MIMO structure when its horizons are represented as separate output dimensions. In this case, the multiple outputs belong to the same semantic target series but resolve to different Target Valid Times.
+A jointly generated multi-horizon forecast may therefore appear as multiple output dimensions even when all outputs belong to the same target series.
 
 Multi-horizon and I/O schema describe different aspects of the model:
 
-- **Multi-horizon** describes the temporal coverage of the outputs.
-- **I/O schema** describes the logical input and output structure presented to the model.
+- **Multi-horizon** describes which future Valid Times are predicted.
+- **I/O schema** describes the model's input and output dimensions.
 
 ---
 
 ## I/O Schema Examples
 
-The examples below describe the input and output structures presented to a forecasting model. The interpretation of an input depends on the model structure:
+The examples below describe the input and output structures presented to a forecasting model.
 
-- In a **tabular** setup, each sample is represented as one row containing its inputs and outputs. The row has one Reference Time, while individual input and output values may describe different Valid Times.
-
-- In a **sequential** setup, each sample contains an ordered input sequence and one or more outputs. The sample has one Reference Time, while each position in the input sequence and each output has its own Valid Time.
-
-Every sample used for training, validation, testing, or live inference has one Reference Time.
+- In a **tabular** setup, each sample is represented as one row containing its inputs and outputs. The row has one Reference Time, while individual values may describe different Valid Times.
+- In a **sequential** setup, each sample contains an ordered input sequence and one or more outputs. The sample has one Reference Time, while each sequence position and output has its own Valid Time.
 
 Any input used to construct a sample must satisfy: `Issue Time ≤ Reference Time`
 
@@ -218,8 +220,6 @@ After inference:
 | Reference Time | Valid Time | Load Forecast |
 | :--- | :--- | ---: |
 | 2026-06-19 08:30 | 2026-06-19 09:00 | 25,650 MW |
-
-This is SISO because one tabular input value produces one output value.
 
 ---
 
@@ -320,9 +320,9 @@ After inference:
 
 | Reference Time | Load H1 | Load H2 | Load H3 |
 | :--- | ---: | ---: | ---: |
-| 2026-06-19 08:30 | 24,900 MW | 25,300 MW | 25,650 MW |
+| 2026-06-19 08:30 | 25,850 MW | 26,050 MW | 26,200 MW |
 
-And we can remap it to:
+The Forecast Schedule maps the outputs to:
 
 | Reference Time | Horizon | Valid Time | Load Forecast |
 | :--- | :--- | :--- | ---: |
@@ -344,7 +344,7 @@ A sequential model uses one historical load sequence to jointly forecast three f
 
 A training sample may look like:
 
-Input
+**Input**
 
 | Reference Time | Valid Time | Historical Load |
 | :--- | :--- | ---: |
@@ -353,7 +353,7 @@ Input
 |                  | 2026-06-19 07:00 | 24,450 MW |
 |                  | 2026-06-19 07:30 | 24,900 MW |
 
-Output
+**Output**
 
 | Reference Time | Horizon | Valid Time | Load |
 | :--- | :--- | :--- | ---: |
