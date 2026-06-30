@@ -76,9 +76,7 @@ A Forecast Schedule defines how each forecast horizon maps from a sample's Refer
 | 08:30 | H1 | 09:00 |
 | 08:30 | H2 | 09:30 |
 
-The schedule may also be irregular. A horizon therefore represents an ordered output position and does not necessarily imply a fixed elapsed duration.
-
-Forecast Schedule is a forecasting-system configuration, not an additional VRI time concept.
+The schedule may also be irregular. A horizon therefore represents an ordered output position and does not necessarily imply a fixed elapsed duration. Forecast Schedule is a forecasting-system configuration, not an additional VRI time concept.
 
 ### Cutoff
 Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples or inferences within that run may have many Reference Times.
