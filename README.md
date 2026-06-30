@@ -346,7 +346,7 @@ After inference:
 | :--- | ---: | ---: | ---: |
 | 2026-06-19 08:30 | 25,850 MW | 26,050 MW | 26,200 MW |
 
-The Forecast Period Mapping assigns each output its corresponding Valid Time:
+Using the Forecast Period Mapping, the outputs resolve to:
 
 | Reference Time | Horizon | Valid Time | Load Forecast |
 | :--- | :--- | :--- | ---: |
