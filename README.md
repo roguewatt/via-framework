@@ -250,7 +250,7 @@ Testing follows the same input eligibility rule as training. A model may be eval
 - Each test or live sample has one Reference Time.
 - Only input records satisfying `Issue Time ≤ Reference Time` are eligible.
 - Future covariates are allowed when their record versions were issued by the Reference Time.
-- Realised target values are never used as model inputs.
+- Future or unavailable realised target values must not be used as model inputs.
 - Realised targets are attached only for scoring after predictions have been generated.
 - For a fixed-model backtest, the completed model is frozen before the first test sample.
 - No test-period samples or labels enter fitting for that fixed model.
