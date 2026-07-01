@@ -93,7 +93,7 @@ For a sample with Reference Time `08:30`, the outputs therefore resolve to:
 A Forecast Period Mapping may be regular or irregular. A horizon is therefore an ordered output identifier and does not necessarily imply a fixed elapsed duration by itself.
 
 ### Cutoff
-Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples or inferences within that run may have many Reference Times.
+Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples within that run may have many Reference Times.
 
 Cutoff constrains:
 - which record versions can be retrieved;
