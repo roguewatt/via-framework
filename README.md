@@ -38,10 +38,7 @@ Reference Time is the temporal anchor of a forecasting sample. It defines the in
 - Each training, validation, test, or live sample has one Reference Time.
 - Every input value included in the sample must satisfy: `Issue Time ≤ Reference Time`
 
-Reference Time is related to, but not always identical to, the forecast origin.
-- **Forecast origin** is the point on the forecasting timeline from which future horizons are measured.
-- **Reference Time** defines the information state used to construct the forecasting sample.
-
+Reference Time includes the temporal anchoring role commonly associated with the forecast origin, but has a broader meaning in VRI. It both defines the information state used to construct the forecasting sample and anchors the Forecast Period Mapping used to resolve its output Valid Times.
 In many forecasting systems, the two timestamps are equal. They may differ when the model's forecast horizon is anchored to a market, operational, or product-specific time rather than directly to the latest information state.
 
 For example, consider a half-hourly solar-generation model using `Solar Radiation Forecast` and `Cloud Cover Forecast` as input features. The model jointly produces `HH0`, `HH1`, and `HH2` as separate outputs.
