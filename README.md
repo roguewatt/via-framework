@@ -60,7 +60,7 @@ After inference:
 | :--- | ---: | ---: | ---: |
 | 08:30 | 150 MW | 190 MW | 225 MW |
 
-The Forecast Period Mapping assigns each output horizon a forecast period, which determines its Valid Time relative to the sample's Reference Time:
+Using the Forecast Period Mapping, each output horizon resolves to its corresponding Valid Time:
 
 | Reference Time | Horizon | Valid Time | Solar Generation Forecast |
 | :--- | :--- | :--- | ---: |
@@ -113,7 +113,7 @@ Training samples follow the same input eligibility rule as inference.
 
 For each sample:
 
-- A historical point on the Valid Time axis is assigned as the sample's Reference Time.
+- Each historical training sample is assigned a Reference Time representing the information state being reconstructed.
 - Every input record used by the sample satisfies `Issue Time ≤ Reference Time`.
 - Labels are realised outcomes associated with the required Valid Times.
 - Labels may be issued after the Reference Time and attached later for model fitting.
@@ -144,7 +144,7 @@ For a regular half-hourly schedule where labels are issued immediately at their 
 
 `Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
 
-This is a special case. For delayed labels or irregular Forecast Period Mapping, use the actual label-completeness rule:
+This is a special case. For delayed labels or irregular forecast-period mappings, use the actual label-completeness rule:
 
 `Required Label Issue Time ≤ Cutoff`
 
@@ -663,28 +663,28 @@ The later business Decision Time is outside VRI.
 
 A VRI-compliant system should be able to reconstruct, for each logical inference:
 
-- Reference Time
-- Valid Time
-- Forecast horizon
+- Sample Reference Time
+- Output Valid Times
+- Forecast horizons
 - Applicable Forecast Period Mapping
 - Input record identifiers with their Valid Times and Issue Times
 - Selected record versions and the deterministic rule used to select them
+- Output record identifiers with their Valid Times and Issue Times
 - Model version
 - Model-training run identifier
-- Training-data cutoff
+- Model-training Cutoff
 - Training-window boundaries
 - Feature-definition version
 - Hyperparameter or configuration version
 - Model-selection or promotion rule
 - Source-data version
 - Code or artifact version
-- Output record identifiers with their Valid Times and Issue Times
-- Run Cutoff
+- Inference-run Cutoff
 
 For training datasets, the system should additionally record:
 
 - Sample Reference Times
-- Target labels with their Valid Times and Issue Times
+- Labels with their Valid Times and Issue Times
 - Dataset Cutoff
 - Training, validation, and test periods
 - Target-buffer or label-completeness rule
