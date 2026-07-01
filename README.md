@@ -159,8 +159,8 @@ Testing follows the same input eligibility rule as training. A model may be eval
 - Future covariates are allowed when their record versions were issued by the Reference Time.
 - Realised target values are never used as model inputs.
 - Realised targets are attached only for scoring after predictions have been generated.
-- For out-of-sample backtesting, the completed model is frozen before the first simulated test inference.
-- No test-period samples or labels enter model fitting.
+- For a fixed-model backtest, the completed model is frozen before the first test sample.
+- No test-period samples or labels enter fitting for that fixed model.
 
 ### Single Inference and Multiple Inferences
 
