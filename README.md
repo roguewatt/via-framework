@@ -6,68 +6,157 @@
 
 ## Purpose
 
-VRI is a governance and auditing convention for production forecasting systems. It provides a strict operational vocabulary for managing temporal leakage, data eligibility, and forecast reproducibility.
+The VRI Framework provides a structured convention for designing, constructing, and auditing production forecasting systems.
 
-It does not introduce a new forecasting methodology or temporal theory.
+It separates two levels:
+
+- **Run Design**: how a training, backtest, evaluation, or inference run is organised.
+- **Sample Design**: how each forecasting sample is temporally governed and represented.
+
+The three core VRI concepts are:
+
+- **Valid Time**
+- **Reference Time**
+- **Issue Time**
+
+The framework also uses **Cutoff** as a separate run-level control.
+
+VRI does not introduce a new forecasting algorithm, model architecture, or temporal theory.
 
 ---
 
-## Core Concepts
+## Framework Structure
+
+| Level | Component | Purpose |
+| :--- | :--- | :--- |
+| Run Design | Forecasting Strategy | Defines whether forecasts are generated directly or recursively |
+| Run Design | Inference Organisation | Defines whether a run processes one or multiple forecasting samples |
+| Run Design | Cutoff | Defines the point-in-time visibility boundary of the run |
+| Run Design | Horizon Coverage | Defines which future Valid Times must be forecast |
+| Sample Design | VRI | Defines the temporal meaning and eligibility of each sample |
+| Sample Design | Forecast Period Mapping | Maps output horizons to Valid Times |
+| Sample Design | I/O Schema | Defines the logical input and output structure of each sample |
+
+---
+
+# Run Design
+
+## Forecasting Strategy
+
+Forecasting Strategy defines how forecasts are generated.
+
+- **Direct forecasting**: forecasts are generated directly from eligible inputs without using earlier predictions as inputs for later forecasts.
+- **Recursive forecasting**: earlier predictions are used as inputs when generating later forecasts.
+
+Forecasting Strategy is independent of the number of forecast horizons, forecasting samples, and model outputs.
+
+## Inference Organisation
+
+Inference Organisation defines how many forecasting samples are processed.
+- **Single inference**: one forecasting sample is processed to produce one set of outputs.
+- **Multiple inferences**: multiple forecasting samples are processed, each with its own Reference Time.
+
+Multiple inferences may be processed individually or together in a batch. The number of inferences is independent of the number of forecast horizons:
+
+- one inference may produce one or multiple horizons;
+- an evaluation may contain multiple inferences;
+- each inference may use a single-horizon or multi-horizon output structure.
+
+## Cutoff
+
+Cutoff is the global point-in-time boundary applied to one dataset construction, training run, backtest, evaluation, or inference job.
+
+A run normally has one Cutoff, while the samples within that run may have many Reference Times.
+
+Cutoff constrains:
+
+- which record versions are visible to the run;
+- which samples may be constructed;
+- whether required labels are available;
+- where a training or evaluation dataset must end.
+
+Run-level visibility requires:
+
+`Record Issue Time ≤ Cutoff`
+
+Visibility by the Cutoff does not automatically make a record eligible for every sample.
+
+Sample-level eligibility still requires:
+
+`Input Issue Time ≤ Sample Reference Time`
+
+Therefore:
+
+- **Cutoff** governs the overall point-in-time boundary of the run.
+- **Reference Time** governs the information state of an individual sample.
+
+---
+
+## Horizon Coverage
+
+Horizon Coverage defines which future Valid Times a forecasting run must produce predictions for.
+
+- **Single-horizon forecasting** produces a prediction for one Valid Time.
+- **Multi-horizon forecasting** produces predictions for multiple Valid Times:
+
+`y(t+1), y(t+2), ..., y(t+H)`
+
+A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the sample's Reference Time.
+
+Horizon Coverage is independent of:
+
+- forecasting strategy;
+- inference organisation;
+- model I/O schema.
+
+---
+
+# Sample Design
+
+## Core VRI Concepts
 
 ### Valid Time
-Valid Time is the business-defined time point or interval that a record or prediction describes. It is a property of the modelled reality, independent of when the record was created, collected, or published.
-- For the half-hourly load of 08:00–08:30 on a given day, the Valid Time is 08:00, the start of the settlement period.
-- For a weather forecast for tomorrow, the Valid Time is the future time described by that forecast.
+
+Valid Time is the business-defined time point or interval that a record or prediction describes.
+
+It is a property of the modelled reality, independent of when the record was created, collected, or published.
+
+- For half-hourly load covering 08:00–08:30, the Valid Time may be 08:00.
+- For a weather forecast for tomorrow, the Valid Time is the future time described by the forecast.
 
 ### Issue Time
+
 Issue Time is the earliest time at which a specific record, prediction, or record version becomes available to its intended consumer through the declared production data path.
 
-For a forecasting system, Issue Time should represent the earliest time at which the record was queryable and usable through the normal production workflow. Source publication time, ingestion time, and system-availability time may differ. When these timestamps differ, the Issue Time used for VRI eligibility must reflect the availability boundary relevant to the intended consumer. For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a model running at 08:03 cannot use it. The availability convention used to derive Issue Time must be declared and applied consistently in training, backtesting, and live inference.
+Source publication time, ingestion time, and system-availability time may differ. The Issue Time used for VRI must reflect the availability boundary relevant to the intended consumer.
+
+For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a model running at 08:03 cannot use it.
 
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
-| Outturn          | 2026-06-18 08:00:00 | 2026-06-19 02:00:00 | Published at 02:00 on the following day |
-| Outturn revision | 2026-06-18 08:00:00 | 2026-06-19 10:00:00 | Revised value published later the same day |
-| Forecast         | 2026-06-20 08:00:00 | 2026-06-19 08:15:00 | Forecast released at 08:15 the day before |
+| Outturn | 2026-06-18 08:00 | 2026-06-19 02:00 | Published the following day |
+| Outturn revision | 2026-06-18 08:00 | 2026-06-19 10:00 | Revised version published later |
+| Forecast | 2026-06-20 08:00 | 2026-06-19 08:15 | Forecast issued the previous day |
 
 Each revision or forecast release is a separate record version with its own Issue Time.
 
 ### Reference Time
 
-Reference Time is the temporal anchor of a forecasting sample. It defines the information state used to construct the sample and anchors the mapping from output horizons to Valid Times. This includes the temporal anchoring role commonly associated with the forecast origin, while adding the VRI role of governing input eligibility.
+Reference Time is the temporal anchor of a forecasting sample.
 
-- Each training, validation, test, or live sample has one Reference Time.
-- Every input value included in the sample must satisfy: `Issue Time ≤ Reference Time`
+It defines:
 
-For example, consider a half-hourly solar-generation model using `Solar Radiation Forecast` and `Cloud Cover Forecast` as input features. The model jointly produces `HH0`, `HH1`, and `HH2` as separate outputs.
+- the information state used to construct the sample;
+- the eligibility boundary for input records;
+- the anchor from which output horizons are mapped to Valid Times.
 
-The final training row constructed by the I/O builder may be:
+Each training, validation, test, or live sample has one Reference Time.
 
-| Reference Time | Solar Radiation Forecast | Cloud Cover Forecast | Solar Generation HH0 | Solar Generation HH1 | Solar Generation HH2 |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| 08:00 | 320 W/m² | 65% | 110 MW | 145 MW | 180 MW |
+Every input value included in the sample must satisfy:
 
-The first test input row contains the same input features without realised outputs:
+`Issue Time ≤ Reference Time`
 
-| Reference Time | Solar Radiation Forecast | Cloud Cover Forecast |
-| :--- | ---: | ---: |
-| 08:30 | 410 W/m² | 48% |
-
-After inference:
-
-| Reference Time | Predicted Solar Generation HH0 | Predicted Solar Generation HH1 | Predicted Solar Generation HH2 |
-| :--- | ---: | ---: | ---: |
-| 08:30 | 150 MW | 190 MW | 225 MW |
-
-Using the Forecast Period Mapping, each output horizon resolves to its corresponding Valid Time:
-
-| Reference Time | Horizon | Valid Time | Solar Generation Forecast |
-| :--- | :--- | :--- | ---: |
-| 08:30 | HH0 | 08:30 | 150 MW |
-| 08:30 | HH1 | 09:00 | 190 MW |
-| 08:30 | HH2 | 09:30 | 225 MW |
-
-### Forecast Period Mapping
+## Forecast Period Mapping
 
 A Forecast Period Mapping assigns a forecast period to each output horizon. The forecast period is the interval between the sample's Reference Time and the output's Valid Time:
 
@@ -91,22 +180,27 @@ For a sample with Reference Time `08:30`, the outputs therefore resolve to:
 
 A Forecast Period Mapping may be regular or irregular. A horizon is therefore an ordered output identifier and does not necessarily imply a fixed elapsed duration by itself.
 
-### Cutoff
-Cutoff is the global data boundary applied to one dataset construction, training run, backtest, or inference job. A run normally has one Cutoff, while the samples within that run may have many Reference Times.
+## I/O Schema
 
-Cutoff constrains:
-- which record versions can be retrieved;
-- which samples can be constructed;
-- whether required labels are available;
-- where a training or evaluation dataset must end.
+SISO, SIMO, MISO, and MIMO describe the logical structure presented to a model:
 
-Cutoff does not replace Reference Time.
-- **Reference Time** governs the information state of an individual sample.
-- **Cutoff** governs the overall data boundary of the run.
+- **SISO**: single input, single output
+- **SIMO**: single input, multiple outputs
+- **MISO**: multiple inputs, single output
+- **MIMO**: multiple inputs, multiple outputs
+
+Inputs and outputs may represent semantic variables or separately constructed model dimensions.
+
+A jointly generated multi-horizon forecast may therefore appear as multiple output dimensions even when all outputs belong to the same target series.
+
+Multi-horizon and I/O schema describe different aspects of the model:
+
+- **Multi-horizon** describes which future Valid Times are predicted.
+- **I/O schema** describes the model's input and output dimensions.
 
 ---
 
-## Training
+# Training
 
 Training samples follow the same input eligibility rule as inference.
 
@@ -118,7 +212,7 @@ For each sample:
 - Labels may be issued after the Reference Time and attached later for model fitting.
 - The model architecture, such as XGBoost, MLP, TCN, or LSTM, is independent of VRI.
 
-### Label Completeness and Past-Covariate Availability
+## Label Completeness and Past-Covariate Availability
 A training sample may be included only when all required labels are available by the dataset Cutoff: 
 
 `Required Label Issue Time ≤ Cutoff`
@@ -149,7 +243,7 @@ This is a special case. For delayed labels or irregular forecast-period mappings
 
 ---
 
-## Testing & Inference
+# Testing & Inference
 
 Testing follows the same input eligibility rule as training. A model may be evaluated through historical inference or used for live prediction.
 
@@ -161,53 +255,9 @@ Testing follows the same input eligibility rule as training. A model may be eval
 - For a fixed-model backtest, the completed model is frozen before the first test sample.
 - No test-period samples or labels enter fitting for that fixed model.
 
-### Single Inference and Multiple Inferences
-
-- **Single inference**: one forecasting sample is processed to produce one set of outputs.
-- **Multiple inferences**: multiple forecasting samples are processed, each with its own Reference Time.
-
-Multiple inferences may be processed individually or together in a batch. The number of inferences is independent of the number of forecast horizons:
-
-- one inference may produce one or multiple horizons;
-- an evaluation may contain multiple inferences;
-- each inference may use a single-horizon or multi-horizon output structure.
-
-The Forecast Period Mapping assigns each prediction its Valid Time, after which the prediction may be evaluated against the corresponding realised value.
-
 ---
 
-## Multi-horizon and I/O Schema
-
-### Multi-horizon
-Multi-horizon forecasting produces values for multiple Valid Times:
-
-`y(t+1), y(t+2), ..., y(t+H)`
-
-A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the sample's Reference Time.
-
-Multi-horizon describes the temporal coverage of a forecast. It is independent of the number of input and output dimensions presented to the model.
-
-### I/O Schema
-
-SISO, SIMO, MISO, and MIMO describe the logical structure presented to a model:
-
-- **SISO**: single input, single output
-- **SIMO**: single input, multiple outputs
-- **MISO**: multiple inputs, single output
-- **MIMO**: multiple inputs, multiple outputs
-
-Inputs and outputs may represent semantic variables or separately constructed model dimensions.
-
-A jointly generated multi-horizon forecast may therefore appear as multiple output dimensions even when all outputs belong to the same target series.
-
-Multi-horizon and I/O schema describe different aspects of the model:
-
-- **Multi-horizon** describes which future Valid Times are predicted.
-- **I/O schema** describes the model's input and output dimensions.
-
----
-
-## I/O Schema Examples
+# I/O Schema Examples
 
 The examples below describe the input and output structures presented to a forecasting model.
 
@@ -218,7 +268,7 @@ Any input used to construct a sample must satisfy: `Issue Time ≤ Reference Tim
 
 In the tabular examples, `t` denotes the sample's Reference Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Reference Time.
 
----
+## SISO
 
 ### SISO Example 1: Tabular Single-Horizon Autoregressive Forecast
 
@@ -248,8 +298,6 @@ After inference:
 | :--- | :--- | ---: |
 | 2026-06-19 08:30 | 2026-06-19 09:00 | 25,650 MW |
 
----
-
 ### SISO Example 2: Tabular Forecast from One Future Covariate
 
 A tabular model uses one temperature forecast value to predict one future load value.
@@ -276,8 +324,6 @@ The temperature forecast is eligible because:
 `2026-06-19 07:40 ≤ 2026-06-19 08:00`
 
 Its Valid Time is later than the Reference Time because it is a future covariate.
-
----
 
 ### SISO Example 3: Sequential Single-Horizon Forecast
 
@@ -321,6 +367,8 @@ This is SISO because one ordered load sequence produces one future load value.
 
 ---
 
+## SIMO
+
 ### SIMO Example 1: Tabular Multi-Horizon Forecast
 
 A tabular model uses one temperature forecast value to jointly forecast load across three horizons.
@@ -359,8 +407,6 @@ Using the Forecast Period Mapping, the outputs resolve to:
 
 This is SIMO because one tabular input value produces multiple output values.
 
----
-
 ### SIMO Example 2: Sequential Multi-Horizon Forecast
 
 A sequential model uses one historical load sequence to jointly forecast three future load values.
@@ -390,8 +436,6 @@ A training sample may look like:
 
 This is SIMO because one ordered load sequence produces multiple future load values.
 
----
-
 ### SIMO Example 3: One Input and Two Output Variables
 
 A tabular model uses one solar-radiation forecast value to jointly predict two solar-generation variables.
@@ -419,6 +463,8 @@ The input and outputs describe the following Valid Times:
 This is SIMO because one input value produces two output variables.
 
 ---
+
+## MISO
 
 ### MISO Example 1: Tabular Single-Horizon Load Forecast
 
@@ -450,8 +496,6 @@ After inference:
 
 This is MISO because multiple tabular input values produce one output value.
 
----
-
 ### MISO Example 2: Sequential Multi-Input Forecast
 
 A sequential model uses a multivariate sequence of load, temperature, and wind values to forecast one future load value.
@@ -475,8 +519,6 @@ The corresponding output is:
 | 2026-06-19 08:00 | 2026-06-19 08:30 | 25,300 MW |
 
 This is MISO because the sequential input contains multiple feature channels while the model produces one output value.
-
----
 
 ### MISO Example 3: Inputs with Different Availability States
 
@@ -510,6 +552,8 @@ An earlier eligible wind-forecast version must be used. If no eligible version e
 
 ---
 
+## MIMO
+
 ### MIMO Example 1: Tabular Multi-Input, Multi-Horizon Forecast
 
 A tabular model uses solar-radiation and cloud-cover forecast values to jointly forecast solar generation across three horizons.
@@ -541,8 +585,6 @@ After inference:
 
 This is MIMO because multiple tabular input values produce multiple output values.
 
----
-
 ### MIMO Example 2: Multiple Inputs and Multiple Output Variables
 
 A tabular model uses several input values to jointly predict future load and future price.
@@ -565,8 +607,6 @@ The two outputs share the same Valid Time:
 | 2026-06-19 08:00 | Price `t+1` | 2026-06-19 08:30 |
 
 This is MIMO because multiple tabular input values produce multiple output variables.
-
----
 
 ### MIMO Example 3: Multiple Zones and Multiple Horizons
 
@@ -595,7 +635,7 @@ This is MIMO because multiple input values produce multiple output values.
 
 ---
 
-## Additional VRI Examples
+## Additional Framework Examples
 
 ### Example: Batched Historical Inference
 
@@ -610,8 +650,6 @@ A backtest evaluates the model at several historical Reference Times.
 Each row is a separate logical sample with its own Reference Time.
 
 The samples may be processed together in one batch. Batching does not merge their Reference Times or change the model's I/O schema.
-
----
 
 ### Example: Cutoff and Label Completeness
 
@@ -642,8 +680,6 @@ For a regular half-hourly schedule where labels are available immediately at the
 
 This is a special case. When labels are issued later or the Forecast Period Mapping is irregular, completeness must be evaluated using the actual Label Issue Times.
 
----
-
 ### Example: Decision Time Is Outside VRI
 
 A forecast is issued before a later business decision.
@@ -658,7 +694,7 @@ The later business Decision Time is outside VRI.
 
 ---
 
-## Auditing
+# Auditing
 
 A VRI-compliant system should be able to reconstruct, for each forecasting sample and prediction:
 
@@ -696,7 +732,7 @@ For each training dataset, the system should additionally record:
 
 ---
 
-## What VRI Is Not
+# What VRI Is Not
 
 VRI is not:
 - a forecasting algorithm;
@@ -705,11 +741,13 @@ VRI is not:
 - a replacement for feature stores;
 - a replacement for forecasting methodology.
 
-It is a governance and auditing convention for production forecasting systems.
+VRI is the temporal governance and auditing convention centred on Valid Time, Reference Time, and Issue Time.
+
+The wider document describes how VRI interacts with adjacent production controls such as Cutoff, forecasting strategy, inference organisation, horizon coverage, and I/O schema.
 
 ---
 
-## References
+# References
 
 [1] **Databricks.** (n.d.). "Point-in-time feature joins." *Databricks Feature Store Documentation.*  
 Accessed 2026-06-19.  
@@ -749,13 +787,13 @@ https://doi.org/10.1007/BFb0053710
 
 ---
 
-## License
+# License
 
 Licensed under the [Apache License 2.0](LICENSE).
 
 ---
 
-## Citation
+# Citation
 
 ```bibtex
 @misc{vri-framework,
