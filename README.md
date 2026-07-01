@@ -34,8 +34,6 @@ Each revision or forecast release is a separate record version with its own Issu
 
 ### Reference Time
 
-### Reference Time
-
 Reference Time is the temporal anchor of a forecasting sample. It defines the information state used to construct the sample and anchors the mapping from output horizons to Valid Times. This includes the temporal anchoring role commonly associated with the forecast origin, while adding the VRI role of governing input eligibility.
 
 - Each training, validation, test, or live sample has one Reference Time.
