@@ -2,8 +2,6 @@
 
 **Valid / Reference / Issue — A Governance and Auditing Convention for Production Forecasting**
 
----
-
 ## Purpose
 
 The VRI Framework provides a structured convention for designing, constructing, and auditing production forecasting systems.
@@ -22,8 +20,6 @@ The three core VRI concepts are:
 The framework also uses **Cutoff** as a separate run-level control.
 
 VRI does not introduce a new forecasting algorithm, model architecture, or temporal theory.
-
----
 
 ## Framework Structure
 
@@ -363,8 +359,6 @@ After inference:
 
 This is SISO because one ordered load sequence produces one future load value.
 
----
-
 ## SIMO
 
 ### SIMO Example 1: Tabular Multi-Horizon Forecast
@@ -460,8 +454,6 @@ The input and outputs describe the following Valid Times:
 
 This is SIMO because one input value produces two output variables.
 
----
-
 ## MISO
 
 ### MISO Example 1: Tabular Single-Horizon Load Forecast
@@ -548,8 +540,6 @@ The wind forecast issued at 08:05 is not eligible because:
 
 An earlier eligible wind-forecast version must be used. If no eligible version exists, the sample must follow the model's defined missing-input policy or be excluded.
 
----
-
 ## MIMO
 
 ### MIMO Example 1: Tabular Multi-Input, Multi-Horizon Forecast
@@ -630,8 +620,6 @@ After inference:
 | 2026-06-19 03:00 | Zone B H2 | 2026-06-21 | 10,200 MW |
 
 This is MIMO because multiple input values produce multiple output values.
-
----
 
 ## Additional Framework Examples
 
