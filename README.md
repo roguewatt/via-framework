@@ -22,7 +22,7 @@ Valid Time is the business-defined time point or interval that a record or predi
 ### Issue Time
 Issue Time is the earliest time at which a specific record, prediction, or record version becomes available to its intended consumer through the declared production data path.
 
-For a forecasting system, Issue Time should represent the earliest time at which the record was queryable and usable through the normal production workflow. Source publication time, ingestion time, and system-availability time may differ. When these timestamps differ, the Issue Time used for VRI eligibility must reflect the availability boundary relevant to the intended consumer. For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a model running at 08:03 has no visibility to use it. The availability convention used to derive Issue Time must be declared and applied consistently in training, backtesting, and live inference.
+For a forecasting system, Issue Time should represent the earliest time at which the record was queryable and usable through the normal production workflow. Source publication time, ingestion time, and system-availability time may differ. When these timestamps differ, the Issue Time used for VRI eligibility must reflect the availability boundary relevant to the intended consumer. For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a model running at 08:03 cannot use it. The availability convention used to derive Issue Time must be declared and applied consistently in training, backtesting, and live inference.
 
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
@@ -112,7 +112,7 @@ Training samples follow the same input eligibility rule as inference.
 
 For each sample:
 
-- Each historical training sample is assigned a Reference Time representing the information state being reconstructed.
+- The sample is assigned a Reference Time representing the historical information state being reconstructed.
 - Every input record used by the sample satisfies `Issue Time ≤ Reference Time`.
 - Labels are realised outcomes associated with the required Valid Times.
 - Labels may be issued after the Reference Time and attached later for model fitting.
