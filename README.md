@@ -661,7 +661,7 @@ The later business Decision Time is outside VRI.
 
 ## Auditing
 
-A VRI-compliant system should be able to reconstruct, for each logical inference:
+A VRI-compliant system should be able to reconstruct, for each forecasting sample and prediction:
 
 - Sample Reference Time
 - Output Valid Times
@@ -671,26 +671,29 @@ A VRI-compliant system should be able to reconstruct, for each logical inference
 - Selected record versions and the deterministic rule used to select them
 - Output record identifiers with their Valid Times and Issue Times
 - Model version
+- Inference-run identifier
+- Inference-run Cutoff
+
+For each model-training run, the system should additionally record:
+
 - Model-training run identifier
 - Model-training Cutoff
 - Training-window boundaries
 - Feature-definition version
+- Feature-selection procedure or version
 - Hyperparameter or configuration version
 - Model-selection or promotion rule
+- Retraining policy
 - Source-data version
-- Code or artifact version
-- Inference-run Cutoff
+- Code or model-artifact version
 
-For training datasets, the system should additionally record:
+For each training dataset, the system should additionally record:
 
 - Sample Reference Times
 - Labels with their Valid Times and Issue Times
 - Dataset Cutoff
 - Training, validation, and test periods
 - Target-buffer or label-completeness rule
-- Retraining policy
-- Feature-selection procedure
-- Hyperparameter-selection procedure
 
 ---
 
