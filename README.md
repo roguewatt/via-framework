@@ -90,8 +90,6 @@ Therefore:
 - **Cutoff** governs the overall point-in-time boundary of the run.
 - **Reference Time** governs the information state of an individual sample.
 
----
-
 ## Horizon Coverage
 
 Horizon Coverage defines which future Valid Times a forecasting run must produce predictions for.
