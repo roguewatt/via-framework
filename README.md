@@ -164,8 +164,8 @@ Testing follows the same input eligibility rule as training. A model may be eval
 
 ### Single Inference and Multiple Inferences
 
-- **Single inference**: one Reference Time, one logical model input, and one set of outputs.
-- **Multiple inferences**: multiple logical model inputs, each governed by its own Reference Time.
+- **Single inference**: one forecasting sample is processed to produce one set of outputs.
+- **Multiple inferences**: multiple forecasting samples are processed, each with its own Reference Time.
 
 Multiple inferences may be processed individually or together in a batch. The number of inferences is independent of the number of forecast horizons:
 
