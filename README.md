@@ -19,7 +19,7 @@ The three core VRI concepts are:
 
 The framework also uses **Cutoff** as a separate run-level control.
 
-VRI does not introduce a new forecasting algorithm, model architecture, or temporal theory.
+VRI does not introduce a new forecasting algorithm, model architecture, or temporal theory. VRI uses established ideas from forecasting, temporal databases, point-in-time feature retrieval, and real-time data vintages. Its contribution is to organise these ideas into a production forecasting governance convention with explicit run-level, sample-level, record-version-level, and audit-level controls.
 
 ## Framework Structure
 
@@ -109,6 +109,12 @@ Horizon Coverage is independent of:
 
 ## Core VRI Concepts
 
+### Record
+
+A record is a data value or prediction value used by a forecasting system. In VRI, a record has temporal meaning: it describes a Valid Time and becomes available at an Issue Time. A record may serve as an input, a target, or a prediction, depending on how it is used by a forecasting sample or run.
+
+Each revision or forecast release is treated as a separate record version with its own Issue Time.
+
 ### Valid Time
 
 Valid Time is the business-defined time point or interval that a record or prediction describes.
@@ -136,7 +142,7 @@ Each revision or forecast release is a separate record version with its own Issu
 
 ### Reference Time
 
-Reference Time is the temporal anchor of a forecasting sample.
+Reference Time is the sample-level information-state anchor of a forecasting sample.
 
 It defines:
 
@@ -183,7 +189,7 @@ SISO, SIMO, MISO, and MIMO describe the logical structure presented to a model:
 - **MISO**: multiple inputs, single output
 - **MIMO**: multiple inputs, multiple outputs
 
-Inputs and outputs may represent semantic variables or separately constructed model dimensions.
+Inputs and outputs may represent business variables, target series, covariates, or separately constructed model dimensions.
 
 A jointly generated multi-horizon forecast may therefore appear as multiple output dimensions even when all outputs belong to the same target series.
 
