@@ -1,25 +1,25 @@
-# VRI Framework
+# VIA Framework
 
-**Valid / Reference / Issue — A Governance and Auditing Convention for Production Forecasting**
+**Valid / Issue / Sample As-of Time — A Governance and Auditing Convention for Production Forecasting**
 
 ## Purpose
 
-The VRI Framework provides a structured convention for designing, constructing, and auditing production forecasting systems.
+The VIA Framework provides a structured convention for designing, constructing, and auditing production forecasting systems.
 
 It separates two levels:
 
 - **Run Design**: how a training, backtest, evaluation, or inference run is organised.
 - **Sample Design**: how each forecasting sample is temporally governed and represented.
 
-The three core VRI concepts are:
+The three core VIA concepts are:
 
 - **Valid Time**
-- **Reference Time**
+- **Sample As-of Time**
 - **Issue Time**
 
 The framework also uses **Cutoff** as a separate run-level control.
 
-VRI does not introduce a new forecasting algorithm, model architecture, or temporal theory. VRI uses established ideas from forecasting, temporal databases, point-in-time feature retrieval, and real-time data vintages. Its contribution is to organise these ideas into a production forecasting governance convention with explicit run-level, sample-level, record-version-level, and audit-level controls.
+VIA does not introduce a new forecasting algorithm, model architecture, or temporal theory. VIA uses established ideas from forecasting, temporal databases, point-in-time feature retrieval, and real-time data vintages. Its contribution is to organise these ideas into a production forecasting governance convention with explicit run-level, sample-level, record-version-level, and audit-level controls.
 
 ## Framework Structure
 
@@ -29,7 +29,7 @@ VRI does not introduce a new forecasting algorithm, model architecture, or tempo
 | Run Design | Inference Organisation | Defines whether a run processes one or multiple forecasting samples |
 | Run Design | Cutoff | Defines the point-in-time visibility boundary of the run |
 | Run Design | Horizon Coverage | Defines which future Valid Times must be forecast |
-| Sample Design | VRI | Defines the temporal meaning and eligibility of each sample |
+| Sample Design | VIA | Defines the temporal meaning and eligibility of each sample |
 | Sample Design | Forecast Period Mapping | Maps output horizons to Valid Times |
 | Sample Design | I/O Schema | Defines the logical input and output structure of each sample |
 
@@ -50,7 +50,7 @@ Forecasting Strategy is independent of the number of forecast horizons, forecast
 
 Inference Organisation defines how many forecasting samples are processed.
 - **Single inference**: one forecasting sample is processed to produce one set of outputs.
-- **Multiple inferences**: multiple forecasting samples are processed, each with its own Reference Time.
+- **Multiple inferences**: multiple forecasting samples are processed, each with its own Sample As-of Time.
 
 Multiple inferences may be processed individually or together in a batch. The number of inferences is independent of the number of forecast horizons:
 
@@ -62,7 +62,7 @@ Multiple inferences may be processed individually or together in a batch. The nu
 
 Cutoff is the global point-in-time boundary applied to one dataset construction, training run, backtest, evaluation, or inference job.
 
-A run normally has one Cutoff, while the samples within that run may have many Reference Times.
+A run normally has one Cutoff, while the samples within that run may have many Sample As-of Times.
 
 Cutoff constrains:
 
@@ -79,12 +79,12 @@ Visibility by the Cutoff does not automatically make a record eligible for every
 
 Sample-level eligibility still requires:
 
-`Input Issue Time ≤ Sample Reference Time`
+`Input Issue Time ≤ Sample As-of Time`
 
 Therefore:
 
 - **Cutoff** governs the overall point-in-time boundary of the run.
-- **Reference Time** governs the information state of an individual sample.
+- **Sample As-of Time** governs the information state of an individual sample.
 
 ## Horizon Coverage
 
@@ -95,7 +95,7 @@ Horizon Coverage defines which future Valid Times a forecasting run must produce
 
 `y(t+1), y(t+2), ..., y(t+H)`
 
-A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the sample's Reference Time.
+A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the sample's As-of Time.
 
 Horizon Coverage is independent of:
 
@@ -107,11 +107,11 @@ Horizon Coverage is independent of:
 
 # Sample Design
 
-## Core VRI Concepts
+## Core VIA Concepts
 
 ### Record
 
-A record is a data value or prediction value used by a forecasting system. In VRI, a record has temporal meaning: it describes a Valid Time and becomes available at an Issue Time. A record may serve as an input, a target, or a prediction, depending on how it is used by a forecasting sample or run.
+A record is a data value or prediction value used by a forecasting system. In VIA, a record has temporal meaning: it describes a Valid Time and becomes available at an Issue Time. A record may serve as an input, a target, or a prediction, depending on how it is used by a forecasting sample or run.
 
 Each revision or forecast release is treated as a separate record version with its own Issue Time.
 
@@ -128,7 +128,7 @@ It is a property of the modelled reality, independent of when the record was cre
 
 Issue Time is the earliest time at which a specific record, prediction, or record version becomes available to its intended consumer through the declared production data path.
 
-Source publication time, ingestion time, and system-availability time may differ. The Issue Time used for VRI must reflect the availability boundary relevant to the intended consumer.
+Source publication time, ingestion time, and system-availability time may differ. The Issue Time used for VIA must reflect the availability boundary relevant to the intended consumer.
 
 For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a model running at 08:03 cannot use it.
 
@@ -140,9 +140,9 @@ For example, if a value is published externally at 08:00 but becomes available t
 
 Each revision or forecast release is a separate record version with its own Issue Time.
 
-### Reference Time
+### Sample As-of Time
 
-Reference Time is the sample-level information-state anchor of a forecasting sample.
+Sample As-of Time is the sample-level information-state anchor of a forecasting sample.
 
 It defines:
 
@@ -150,17 +150,17 @@ It defines:
 - the eligibility boundary for input records;
 - the anchor from which output horizons are mapped to Valid Times.
 
-Each training, validation, test, or live sample has one Reference Time.
+Each training, validation, test, or live sample has one Sample As-of Time.
 
 Every input value included in the sample must satisfy:
 
-`Issue Time ≤ Reference Time`
+`Issue Time ≤ Sample As-of Time`
 
 ## Forecast Period Mapping
 
-A Forecast Period Mapping assigns a forecast period to each output horizon. The forecast period is the interval between the sample's Reference Time and the output's Valid Time:
+A Forecast Period Mapping assigns a forecast period to each output horizon. The forecast period is the interval between the sample's As-of Time and the output's Valid Time:
 
-`Valid Time = Reference Time + Forecast Period`
+`Valid Time = Sample As-of Time + Forecast Period`
 
 For a regular half-hourly forecast:
 
@@ -170,7 +170,7 @@ For a regular half-hourly forecast:
 | H1 | 30 minutes |
 | H2 | 60 minutes |
 
-For a sample with Reference Time `08:30`, the outputs therefore resolve to:
+For a sample with Sample As-of Time `08:30`, the outputs therefore resolve to:
 
 | Horizon | Forecast Period | Valid Time |
 | :--- | :--- | :--- |
@@ -206,22 +206,22 @@ Training samples follow the same input eligibility rule as inference.
 
 For each sample:
 
-- The sample is assigned a Reference Time representing the historical information state being reconstructed.
-- Every input record used by the sample satisfies `Issue Time ≤ Reference Time`.
+- The sample is assigned a Sample As-of Time representing the historical information state being reconstructed.
+- Every input record used by the sample satisfies `Issue Time ≤ Sample As-of Time`.
 - Labels are realised outcomes associated with the required Valid Times.
-- Labels may be issued after the Reference Time and attached later for model fitting.
-- The model architecture, such as XGBoost, MLP, TCN, or LSTM, is independent of VRI.
+- Labels may be issued after the Sample As-of Time and attached later for model fitting.
+- The model architecture, such as XGBoost, MLP, TCN, or LSTM, is independent of VIA.
 
 ## Label Completeness and Past-Covariate Availability
 A training sample may be included only when all required labels are available by the dataset Cutoff: 
 
 `Required Label Issue Time ≤ Cutoff`
 
-This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the sample's Reference Time.
+This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the sample's As-of Time.
 
-An observation is not automatically eligible because its Valid Time is earlier than the Reference Time. It must still satisfy: 
+An observation is not automatically eligible because its Valid Time is earlier than the Sample As-of Time. It must still satisfy: 
 
-`Issue Time ≤ Sample Reference Time`
+`Issue Time ≤ Sample As-of Time`
 
 For each input series, the input-selection policy must define:
 
@@ -231,11 +231,11 @@ For each input series, the input-selection policy must define:
 - how missing values are handled;
 - whether the sample is excluded when historical availability cannot be reproduced reliably.
 
-Historical samples must reproduce the source-specific availability state that existed at each Reference Time. Later publications, revisions, corrections, and backfills are ineligible unless they were already available at that time.
+Historical samples must reproduce the source-specific availability state that existed at each Sample As-of Time. Later publications, revisions, corrections, and backfills are ineligible unless they were already available at that time.
 
 For a regular half-hourly schedule where labels are issued immediately at their Valid Times:
 
-`Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
+`Latest Training Sample As-of Time = Cutoff − Maximum Horizon × 30 minutes`
 
 This is a special case. For delayed labels or irregular forecast-period mappings, use the actual label-completeness rule:
 
@@ -247,9 +247,9 @@ This is a special case. For delayed labels or irregular forecast-period mappings
 
 Testing follows the same input eligibility rule as training. A model may be evaluated through historical inference or used for live prediction.
 
-- Each test or live sample has one Reference Time.
-- Only input records satisfying `Issue Time ≤ Reference Time` are eligible.
-- Future covariates are allowed when their record versions were issued by the Reference Time.
+- Each test or live sample has one Sample As-of Time.
+- Only input records satisfying `Issue Time ≤ Sample As-of Time` are eligible.
+- Future covariates are allowed when their record versions were issued by the Sample As-of Time.
 - Future or unavailable realised target values must not be used as model inputs.
 - Realised targets are attached only for scoring after predictions have been generated.
 - For a fixed-model backtest, the completed model is frozen before the first test sample.
@@ -261,12 +261,12 @@ Testing follows the same input eligibility rule as training. A model may be eval
 
 The examples below describe the input and output structures presented to a forecasting model.
 
-- In a **tabular** setup, each sample is represented as one row containing its inputs and outputs. The row has one Reference Time, while individual values may describe different Valid Times.
-- In a **sequential** setup, each sample contains an ordered input sequence and one or more outputs. The sample has one Reference Time, while each sequence position and output has its own Valid Time.
+- In a **tabular** setup, each sample is represented as one row containing its inputs and outputs. The row has one Sample As-of Time, while individual values may describe different Valid Times.
+- In a **sequential** setup, each sample contains an ordered input sequence and one or more outputs. The sample has one Sample As-of Time, while each sequence position and output has its own Valid Time.
 
-Any input used to construct a sample must satisfy: `Issue Time ≤ Reference Time`
+Any input used to construct a sample must satisfy: `Issue Time ≤ Sample As-of Time`
 
-In the tabular examples, `t` denotes the sample's Reference Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Reference Time.
+In the tabular examples, `t` denotes the sample's As-of Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Sample As-of Time.
 
 ## SISO
 
@@ -280,7 +280,7 @@ A tabular model uses one historical load value to forecast one future load value
 
 Training samples may look like:
 
-| Reference Time | Load `t-1` | Load `t+1` |
+| Sample As-of Time | Load `t-1` | Load `t+1` |
 | :--- | ---: | ---: |
 | 2026-06-19 07:00 | 24,100 MW | 24,900 MW |
 | 2026-06-19 07:30 | 24,450 MW | 25,300 MW |
@@ -288,13 +288,13 @@ Training samples may look like:
 
 A test input sample may look like:
 
-| Reference Time | Load `t-1` |
+| Sample As-of Time | Load `t-1` |
 | :--- | ---: |
 | 2026-06-19 08:30 | 25,300 MW |
 
 After inference:
 
-| Reference Time | Valid Time | Load Forecast |
+| Sample As-of Time | Valid Time | Load Forecast |
 | :--- | :--- | ---: |
 | 2026-06-19 08:30 | 2026-06-19 09:00 | 25,650 MW |
 
@@ -308,13 +308,13 @@ A tabular model uses one temperature forecast value to predict one future load v
 
 A training sample may look like:
 
-| Reference Time | Temperature Forecast | Load |
+| Sample As-of Time | Temperature Forecast | Load |
 | :--- | ---: | ---: |
 | 2026-06-19 08:00 | 18.1°C | 25,650 MW |
 
 The input and output describe the following Valid Times:
 
-| Reference Time | Item | Valid Time | Issue Time |
+| Sample As-of Time | Item | Valid Time | Issue Time |
 | :--- | :--- | :--- | :--- |
 | 2026-06-19 08:00 | Temperature forecast | 2026-06-19 08:30 | 2026-06-19 07:40 |
 | 2026-06-19 08:00 | Load label | 2026-06-19 08:30 | 2026-06-19 08:35 |
@@ -323,7 +323,7 @@ The temperature forecast is eligible because:
 
 `2026-06-19 07:40 ≤ 2026-06-19 08:00`
 
-Its Valid Time is later than the Reference Time because it is a future covariate.
+Its Valid Time is later than the Sample As-of Time because it is a future covariate.
 
 ### SISO Example 3: Sequential Single-Horizon Forecast
 
@@ -335,7 +335,7 @@ A sequential model uses one historical load sequence to forecast one future load
 
 A training sample contains one ordered input sequence:
 
-| Reference Time | Valid Time | Historical Load |
+| Sample As-of Time | Valid Time | Historical Load |
 | :--- | :--- | ---: |
 | 2026-06-19 08:00 | 2026-06-19 06:00 | 23,800 MW |
 |                  | 2026-06-19 06:30 | 24,100 MW |
@@ -344,13 +344,13 @@ A training sample contains one ordered input sequence:
 
 The corresponding output is:
 
-| Reference Time | Valid Time | Future Load |
+| Sample As-of Time | Valid Time | Future Load |
 | :--- | :--- | ---: |
 | 2026-06-19 08:00 | 2026-06-19 08:30 | 25,300 MW |
 
 A test input sample may contain:
 
-| Reference Time | Valid Time | Historical Load |
+| Sample As-of Time | Valid Time | Historical Load |
 | :--- | :--- | ---: |
 | 2026-06-19 08:30 | 2026-06-19 06:30 | 24,100 MW |
 |                  | 2026-06-19 07:00 | 24,450 MW |
@@ -359,7 +359,7 @@ A test input sample may contain:
 
 After inference:
 
-| Reference Time | Valid Time | Load Forecast |
+| Sample As-of Time | Valid Time | Load Forecast |
 | :--- | :--- | ---: |
 | 2026-06-19 08:30 | 2026-06-19 09:00 | 25,650 MW |
 
@@ -377,7 +377,7 @@ A tabular model uses one temperature forecast value to jointly forecast load acr
 
 Training samples may look like:
 
-| Reference Time | Temperature Forecast | Load H1 | Load H2 | Load H3 |
+| Sample As-of Time | Temperature Forecast | Load H1 | Load H2 | Load H3 |
 | :--- | ---: | ---: | ---: | ---: |
 | 2026-06-19 07:00 | 17.2°C | 24,900 MW | 25,300 MW | 25,650 MW |
 | 2026-06-19 07:30 | 17.6°C | 25,300 MW | 25,650 MW | 25,900 MW |
@@ -385,19 +385,19 @@ Training samples may look like:
 
 A test input sample may look like:
 
-| Reference Time | Temperature Forecast |
+| Sample As-of Time | Temperature Forecast |
 | :--- | ---: |
 | 2026-06-19 08:30 | 18.5°C |
 
 After inference:
 
-| Reference Time | Load H1 | Load H2 | Load H3 |
+| Sample As-of Time | Load H1 | Load H2 | Load H3 |
 | :--- | ---: | ---: | ---: |
 | 2026-06-19 08:30 | 25,850 MW | 26,050 MW | 26,200 MW |
 
 Using the Forecast Period Mapping, the outputs resolve to:
 
-| Reference Time | Horizon | Valid Time | Load Forecast |
+| Sample As-of Time | Horizon | Valid Time | Load Forecast |
 | :--- | :--- | :--- | ---: |
 | 2026-06-19 08:30 | H1 | 2026-06-19 09:00 | 25,850 MW |
 | 2026-06-19 08:30 | H2 | 2026-06-19 09:30 | 26,050 MW |
@@ -417,7 +417,7 @@ A training sample may look like:
 
 **Input**
 
-| Reference Time | Valid Time | Historical Load |
+| Sample As-of Time | Valid Time | Historical Load |
 | :--- | :--- | ---: |
 | 2026-06-19 08:00 | 2026-06-19 06:00 | 23,800 MW |
 |                  | 2026-06-19 06:30 | 24,100 MW |
@@ -426,7 +426,7 @@ A training sample may look like:
 
 **Output**
 
-| Reference Time | Horizon | Valid Time | Load |
+| Sample As-of Time | Horizon | Valid Time | Load |
 | :--- | :--- | :--- | ---: |
 | 2026-06-19 08:00 | H1 | 2026-06-19 08:30 | 25,300 MW |
 |                  | H2 | 2026-06-19 09:00 | 25,650 MW |
@@ -444,7 +444,7 @@ A tabular model uses one solar-radiation forecast value to jointly predict two s
 
 A training sample may look like:
 
-| Reference Time | Solar-Radiation Forecast | Grid-Connected Solar | Embedded Solar |
+| Sample As-of Time | Solar-Radiation Forecast | Grid-Connected Solar | Embedded Solar |
 | :--- | ---: | ---: | ---: |
 | 2026-06-19 07:00 | 410 W/m² | 3,250 MW | 1,180 MW |
 | 2026-06-19 07:30 | 380 W/m² | 3,350 MW | 1,070 MW |
@@ -452,7 +452,7 @@ A training sample may look like:
 
 The input and outputs describe the following Valid Times:
 
-| Reference Time | Item | Valid Time |
+| Sample As-of Time | Item | Valid Time |
 | :--- | :--- | :--- |
 | 2026-06-19 08:00 | Solar-radiation forecast | 2026-06-19 08:30 |
 | 2026-06-19 08:00 | Grid-connected solar | 2026-06-19 08:30 |
@@ -472,7 +472,7 @@ A tabular model uses several input values to forecast one future load value.
 
 Training samples may look like:
 
-| Reference Time | Load `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` | Load `t+1` |
+| Sample As-of Time | Load `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` | Load `t+1` |
 | :--- | ---: | ---: | ---: | ---: |
 | 2026-06-19 07:00 | 24,100 MW | 17.2°C | 8,400 MW | 24,900 MW |
 | 2026-06-19 07:30 | 24,450 MW | 17.6°C | 8,250 MW | 25,300 MW |
@@ -480,13 +480,13 @@ Training samples may look like:
 
 A test input sample may look like:
 
-| Reference Time | Load `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` |
+| Sample As-of Time | Load `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` |
 | :--- | ---: | ---: | ---: |
 | 2026-06-19 08:30 | 25,300 MW | 18.5°C | 7,950 MW |
 
 After inference:
 
-| Reference Time | Valid Time | Load Forecast |
+| Sample As-of Time | Valid Time | Load Forecast |
 | :--- | :--- | ---: |
 | 2026-06-19 08:30 | 2026-06-19 09:00 | 25,850 MW |
 
@@ -502,7 +502,7 @@ A sequential model uses a multivariate sequence of load, temperature, and wind v
 
 One training sample may look like:
 
-| Reference Time | Valid Time | Load | Temperature | Wind |
+| Sample As-of Time | Valid Time | Load | Temperature | Wind |
 | :--- | :--- | ---: | ---: | ---: |
 | 2026-06-19 08:00 | 2026-06-19 06:30 | 24,100 MW | 17.0°C | 8,600 MW |
 |                  | 2026-06-19 07:00 | 24,450 MW | 17.2°C | 8,400 MW |
@@ -510,7 +510,7 @@ One training sample may look like:
 
 The corresponding output is:
 
-| Reference Time | Valid Time | Future Load |
+| Sample As-of Time | Valid Time | Future Load |
 | :--- | :--- | ---: |
 | 2026-06-19 08:00 | 2026-06-19 08:30 | 25,300 MW |
 
@@ -524,7 +524,7 @@ A tabular model is configured with historical load, a temperature forecast, and 
 | :--- | :--- | :--- |
 | MISO | Historical load; temperature forecast; wind forecast | Future load |
 
-For a sample with Reference Time `2026-06-19 08:00`:
+For a sample with Sample As-of Time `2026-06-19 08:00`:
 
 | Input | Valid Time | Issue Time |
 | :--- | :--- | :--- |
@@ -558,20 +558,20 @@ A tabular model uses solar-radiation and cloud-cover forecast values to jointly 
 
 Training samples may look like:
 
-| Reference Time | Solar-Radiation Forecast | Cloud-Cover Forecast | Solar H0 | Solar H1 | Solar H2 |
+| Sample As-of Time | Solar-Radiation Forecast | Cloud-Cover Forecast | Solar H0 | Solar H1 | Solar H2 |
 | :--- | ---: | ---: | ---: | ---: | ---: |
 | 2026-06-19 08:00 | 320 W/m² | 65% | 110 MW | 145 MW | 180 MW |
 | 2026-06-19 08:30 | 410 W/m² | 48% | 150 MW | 190 MW | 225 MW |
 
 A test input sample may look like:
 
-| Reference Time | Solar-Radiation Forecast | Cloud-Cover Forecast |
+| Sample As-of Time | Solar-Radiation Forecast | Cloud-Cover Forecast |
 | :--- | ---: | ---: |
 | 2026-06-19 09:00 | 470 W/m² | 40% |
 
 After inference:
 
-| Reference Time | Horizon | Valid Time | Solar Forecast |
+| Sample As-of Time | Horizon | Valid Time | Solar Forecast |
 | :--- | :--- | :--- | ---: |
 | 2026-06-19 09:00 | H0 | 2026-06-19 09:00 | 185 MW |
 | 2026-06-19 09:00 | H1 | 2026-06-19 09:30 | 220 MW |
@@ -589,13 +589,13 @@ A tabular model uses several input values to jointly predict future load and fut
 
 A training sample may look like:
 
-| Reference Time | Load `t-1` | Price `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` | Load `t+1` | Price `t+1` |
+| Sample As-of Time | Load `t-1` | Price `t-1` | Temperature Forecast `t+1` | Wind Forecast `t+1` | Load `t+1` | Price `t+1` |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
 | 2026-06-19 08:00 | 24,900 MW | £72/MWh | 18.1°C | 8,100 MW | 25,650 MW | £75/MWh |
 
 The two outputs share the same Valid Time:
 
-| Reference Time | Output | Valid Time |
+| Sample As-of Time | Output | Valid Time |
 | :--- | :--- | :--- |
 | 2026-06-19 08:00 | Load `t+1` | 2026-06-19 08:30 |
 | 2026-06-19 08:00 | Price `t+1` | 2026-06-19 08:30 |
@@ -612,13 +612,13 @@ A tabular model jointly forecasts load for Zone A and Zone B across two future d
 
 A test input sample may look like:
 
-| Reference Time | Zone A Load | Zone B Load | Zone A Weather H1 | Zone A Weather H2 | Zone B Weather H1 | Zone B Weather H2 |
+| Sample As-of Time | Zone A Load | Zone B Load | Zone A Weather H1 | Zone A Weather H2 | Zone B Weather H1 | Zone B Weather H2 |
 | :--- | ---: | ---: | :--- | :--- | :--- | :--- |
 | 2026-06-19 03:00 | 12,400 MW | 9,800 MW | Mild | Warm | Cool | Mild |
 
 After inference:
 
-| Reference Time | Output | Valid Time | Forecast |
+| Sample As-of Time | Output | Valid Time | Forecast |
 | :--- | :--- | :--- | ---: |
 | 2026-06-19 03:00 | Zone A H1 | 2026-06-20 | 12,750 MW |
 | 2026-06-19 03:00 | Zone A H2 | 2026-06-21 | 12,900 MW |
@@ -631,17 +631,17 @@ This is MIMO because multiple input values produce multiple output values.
 
 ### Example: Batched Historical Inference
 
-A backtest evaluates the model at several historical Reference Times.
+A backtest evaluates the model at several historical Sample As-of Times.
 
-| Reference Time | Valid Time |
+| Sample As-of Time | Valid Time |
 | :--- | :--- |
 | 2026-06-01 08:00 | 2026-06-01 08:30 |
 | 2026-06-01 08:30 | 2026-06-01 09:00 |
 | 2026-06-01 09:00 | 2026-06-01 09:30 |
 
-Each row is a separate logical sample with its own Reference Time.
+Each row is a separate logical sample with its own Sample As-of Time.
 
-The samples may be processed together in one batch. Batching does not merge their Reference Times or change the model's I/O schema.
+The samples may be processed together in one batch. Batching does not merge their Sample As-of Times or change the model's I/O schema.
 
 ### Example: Cutoff and Label Completeness
 
@@ -651,13 +651,13 @@ A training dataset is constructed with:
 
 For every input used by a sample:
 
-`Issue Time ≤ Sample Reference Time`
+`Issue Time ≤ Sample As-of Time`
 
 For every required label:
 
 `Label Issue Time ≤ Cutoff`
 
-| Reference Time | Label Valid Time | Label Issue Time | Cutoff |
+| Sample As-of Time | Label Valid Time | Label Issue Time | Cutoff |
 | :--- | :--- | :--- | :--- |
 | 2026-06-19 07:30 | 2026-06-19 08:00 | 2026-06-19 08:05 | 2026-06-19 08:30 |
 | 2026-06-19 07:30 | 2026-06-19 08:30 | 2026-06-19 09:00 | 2026-06-19 08:30 |
@@ -668,29 +668,29 @@ The second label is not available by the Cutoff. If both labels are required, th
 
 For a regular half-hourly schedule where labels are available immediately at their Valid Times:
 
-`Latest Training Reference Time = Cutoff − Maximum Horizon × 30 minutes`
+`Latest Training Sample As-of Time = Cutoff − Maximum Horizon × 30 minutes`
 
 This is a special case. When labels are issued later or the Forecast Period Mapping is irregular, completeness must be evaluated using the actual Label Issue Times.
 
-### Example: Decision Time Is Outside VRI
+### Example: Decision Time Is Outside VIA
 
 A forecast is issued before a later business decision.
 
-| Reference Time | Valid Time | Issue Time | Decision Time |
+| Sample As-of Time | Valid Time | Issue Time | Decision Time |
 | :--- | :--- | :--- | :--- |
 | 2026-06-19 08:00 | 2026-06-19 08:30 | 2026-06-19 08:15 | 2026-06-19 10:00 |
 
-VRI governs the temporal semantics of the inputs, samples, and predictions.
+VIA governs the temporal semantics of the inputs, samples, and predictions.
 
-The later business Decision Time is outside VRI.
+The later business Decision Time is outside VIA.
 
 ---
 
 # Auditing
 
-A VRI-compliant system should be able to reconstruct, for each forecasting sample and prediction:
+A VIA-compliant system should be able to reconstruct, for each forecasting sample and prediction:
 
-- Sample Reference Time
+- Sample As-of Time
 - Output Valid Times
 - Forecast horizons
 - Applicable Forecast Period Mapping
@@ -716,7 +716,7 @@ For each model-training run, the system should additionally record:
 
 For each training dataset, the system should additionally record:
 
-- Sample Reference Times
+- Sample As-of Times
 - Labels with their Valid Times and Issue Times
 - Dataset Cutoff
 - Training, validation, and test periods
@@ -724,18 +724,18 @@ For each training dataset, the system should additionally record:
 
 ---
 
-# What VRI Is Not
+# What VIA Is Not
 
-VRI is not:
+VIA is not:
 - a forecasting algorithm;
 - a temporal database theory;
 - a leakage detection theory;
 - a replacement for feature stores;
 - a replacement for forecasting methodology.
 
-VRI is the temporal governance and auditing convention centred on Valid Time, Reference Time, and Issue Time.
+VIA is the temporal governance and auditing convention centred on Valid Time, Sample As-of Time, and Issue Time.
 
-The wider document describes how VRI interacts with adjacent production controls such as Cutoff, forecasting strategy, inference organisation, horizon coverage, and I/O schema.
+The wider document describes how VIA interacts with adjacent production controls such as Cutoff, forecasting strategy, inference organisation, horizon coverage, and I/O schema.
 
 ---
 
@@ -788,8 +788,8 @@ Licensed under the [Apache License 2.0](LICENSE).
 # Citation
 
 ```bibtex
-@misc{vri-framework,
+@misc{VIA-framework,
   author       = {Fan Zhang},
-  title        = {VRI: A Governance and Auditing Convention for Production Forecasting},
+  title        = {VIA: A Governance and Auditing Convention for Production Forecasting},
   year         = {2026},
-  howpublished = {\url{https://github.com/roguewatt/vri-framework}}}
+  howpublished = {\url{https://github.com/roguewatt/via-framework}}}
