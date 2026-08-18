@@ -95,7 +95,7 @@ Horizon Coverage defines which future Valid Times a forecasting run must produce
 
 `y(t+1), y(t+2), ..., y(t+H)`
 
-A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the sample's As-of Time.
+A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the Sample As-of Time.
 
 Horizon Coverage is independent of:
 
@@ -158,7 +158,7 @@ Every input value included in the sample must satisfy:
 
 ## Forecast Period Mapping
 
-A Forecast Period Mapping assigns a forecast period to each output horizon. The forecast period is the interval between the sample's As-of Time and the output's Valid Time:
+A Forecast Period Mapping assigns a forecast period to each output horizon. The forecast period is the interval between the Sample As-of Time and the output's Valid Time:
 
 `Valid Time = Sample As-of Time + Forecast Period`
 
@@ -217,7 +217,7 @@ A training sample may be included only when all required labels are available by
 
 `Required Label Issue Time ≤ Cutoff`
 
-This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the sample's As-of Time.
+This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the Sample As-of Time.
 
 An observation is not automatically eligible because its Valid Time is earlier than the Sample As-of Time. It must still satisfy: 
 
@@ -266,7 +266,7 @@ The examples below describe the input and output structures presented to a forec
 
 Any input used to construct a sample must satisfy: `Issue Time ≤ Sample As-of Time`
 
-In the tabular examples, `t` denotes the sample's As-of Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Sample As-of Time.
+In the tabular examples, `t` denotes the Sample As-of Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Sample As-of Time.
 
 ## SISO
 
