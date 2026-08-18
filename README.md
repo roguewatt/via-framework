@@ -14,8 +14,8 @@ It separates two levels:
 The three core VIA concepts are:
 
 - **Valid Time**
-- **Sample As-of Time**
 - **Issue Time**
+- **Sample As-of Time**
 
 The framework also uses **Cutoff** as a separate run-level control.
 
