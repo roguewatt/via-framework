@@ -219,7 +219,7 @@ The roles of $\tau$ and $\mathbf{u}$ are different:
 Let $\mathcal{F}_\tau$ denote the information available by Sample As-of Time $\tau$. The VIA information-admissibility condition is:
 
 $$
-\sigma\!\left(X_{\tau,\mathbf{u}}\right) \subseteq \mathcal{F}_\tau
+\sigma(X_{\tau,\mathbf{u}}) \subseteq \mathcal{F}_\tau
 $$
 
 The condition applies only to the input side of the sample. It does not require the future Targets to be known at $\tau$.
