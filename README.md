@@ -74,13 +74,17 @@ Cutoff constrains:
 
 Run-level visibility requires:
 
-`Record Issue Time ≤ Cutoff`
+$$
+\text{Record Issue Time} \leq \text{Cutoff}
+$$
 
 Visibility by the Cutoff does not automatically make a record eligible for every sample.
 
 Sample-level eligibility still requires:
 
-`Input Issue Time ≤ Sample As-of Time`
+$$
+\text{Input Issue Time} \leq \text{Sample As-of Time}
+$$
 
 Therefore:
 
@@ -91,9 +95,11 @@ Therefore:
 
 Horizon Coverage defines how far into the future a forecasting run must produce predictions.
 
-For an output with Sample As-of Time `τ` and Valid Time `u`, the corresponding Forecast Period is:
+For an output with Sample As-of Time $\tau$ and Valid Time $u$, the corresponding Forecast Period is:
 
-`p = u − τ`
+$$
+p = u - \tau
+$$
 
 A run may cover one Forecast Period or multiple Forecast Periods. The required Valid Times follow from the Sample As-of Time and the applicable Forecast Periods.
 
@@ -144,7 +150,9 @@ Sample As-of Time is the information-state anchor of a forecasting sample.
 
 For the input side of the sample, it defines the information boundary: every input record used by the sample must have been issued by that time.
 
-`Input Issue Time ≤ Sample As-of Time`
+$$
+\text{Input Issue Time} \leq \text{Sample As-of Time}
+$$
 
 For the output side, Sample As-of Time is the reference point from which a Forecast Period may be expressed. The output itself is defined by its Valid Time and Target.
 
@@ -154,7 +162,9 @@ Each training, validation, test, or live sample has one Sample As-of Time.
 
 A forecast output is defined by:
 
-`Output = (Valid Time, Target)`
+$$
+\text{Output} = (\text{Valid Time}, \text{Target})
+$$
 
 Valid Time states **when** the output applies. Target states **what** is being forecast.
 
@@ -170,43 +180,59 @@ Multiple outputs may share the same Valid Time, and the same Target may appear a
 
 For a single output, let:
 
-- `τ` be the Sample As-of Time;
-- `u` be the output Valid Time;
-- `X_{τ,u}` be the inputs used by the sample;
-- `Y_u` be the Target at Valid Time `u`.
+- $\tau$ be the Sample As-of Time;
+- $u$ be the output Valid Time;
+- $X_{\tau,u}$ be the inputs used by the sample;
+- $Y_u$ be the Target at Valid Time $u$.
 
 The forecast sample is:
 
-`S_{τ,u} = (X_{τ,u}, Y_u)`
+$$
+S_{\tau,u} = \left(X_{\tau,u}, Y_u\right)
+$$
 
 For multiple outputs, the Valid Time becomes a vector:
 
-`u⃗ = (u₁, ..., uₘ)`
+$$
+\mathbf{u} = (u_1, \ldots, u_m)
+$$
 
 and the corresponding Target vector is:
 
-`Y_{u⃗} = (Y¹_{u₁}, ..., Yᵐ_{uₘ})`
+$$
+\mathbf{Y}_{\mathbf{u}}
+=
+\left(Y^{(1)}_{u_1}, \ldots, Y^{(m)}_{u_m}\right)
+$$
 
 so the sample becomes:
 
-`S_{τ,u⃗} = (X_{τ,u⃗}, Y_{u⃗})`
+$$
+S_{\tau,\mathbf{u}}
+=
+\left(X_{\tau,\mathbf{u}}, \mathbf{Y}_{\mathbf{u}}\right)
+$$
 
-The single-output form is the special case `m = 1`.
+The single-output form is the special case $m=1$.
 
-The roles of `τ` and `u⃗` are different:
+The roles of $\tau$ and $\mathbf{u}$ are different:
 
-- `τ` defines the information boundary for the inputs;
-- `u⃗` contains the Valid Times of the outputs.
+- $\tau$ defines the information boundary for the inputs;
+- $\mathbf{u}$ contains the Valid Times of the outputs.
 
-Let `F_τ` denote the information available by Sample As-of Time `τ`. The VIA information-admissibility condition is:
+Let $\mathcal{F}_\tau$ denote the information available by Sample As-of Time $\tau$. The VIA information-admissibility condition is:
 
-`σ(X_{τ,u⃗}) ⊆ F_τ`
+$$
+\sigma\!\left(X_{\tau,\mathbf{u}}\right) \subseteq \mathcal{F}_\tau
+$$
 
-The condition applies only to the input side of the sample. It does not require the future Targets to be known at `τ`.
+The condition applies only to the input side of the sample. It does not require the future Targets to be known at $\tau$.
 
 Operationally, this is enforced by:
 
-`Input Issue Time ≤ Sample As-of Time`
+$$
+\text{Input Issue Time} \leq \text{Sample As-of Time}
+$$
 
 ### Forecast Period Mapping
 
@@ -214,15 +240,21 @@ Forecast Period is the time interval between Sample As-of Time and an output's V
 
 For one output:
 
-`p = u − τ`
+$$
+p = u - \tau
+$$
 
 or equivalently:
 
-`Valid Time = Sample As-of Time + Forecast Period`
+$$
+\text{Valid Time} = \text{Sample As-of Time} + \text{Forecast Period}
+$$
 
 For multiple outputs:
 
-`p⃗ = u⃗ − τ`
+$$
+\mathbf{p} = \mathbf{u} - \tau
+$$
 
 with the subtraction applied component-wise.
 
@@ -263,7 +295,7 @@ Training samples follow the same input eligibility rule as inference.
 For each sample:
 
 - The sample is assigned a Sample As-of Time representing the historical information state being reconstructed.
-- Every input record used by the sample satisfies `Issue Time ≤ Sample As-of Time`.
+- Every input record used by the sample satisfies $\text{Issue Time} \leq \text{Sample As-of Time}$.
 - Labels are realised outcomes associated with the required Valid Times.
 - Labels may be issued after the Sample As-of Time and attached later for model fitting.
 - The model architecture, such as XGBoost, MLP, TCN, or LSTM, is independent of VIA.
@@ -271,13 +303,17 @@ For each sample:
 ## Label Completeness and Past-Covariate Availability
 A training sample may be included only when all required labels are available by the dataset Cutoff: 
 
-`Required Label Issue Time ≤ Cutoff`
+$$
+\text{Required Label Issue Time} \leq \text{Cutoff}
+$$
 
 This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the Sample As-of Time.
 
 An observation is not automatically eligible because its Valid Time is earlier than the Sample As-of Time. It must still satisfy: 
 
-`Issue Time ≤ Sample As-of Time`
+$$
+\text{Issue Time} \leq \text{Sample As-of Time}
+$$
 
 For each input series, the input-selection policy must define:
 
@@ -291,11 +327,15 @@ Historical samples must reproduce the source-specific availability state that ex
 
 For a regular half-hourly schedule where labels are issued immediately at their Valid Times:
 
-`Latest Training Sample As-of Time = Cutoff − Maximum Forecast Period`
+$$
+\text{Latest Training Sample As-of Time} = \text{Cutoff} - \text{Maximum Forecast Period}
+$$
 
 This is a special case. For delayed labels or irregular forecast-period mappings, use the actual label-completeness rule:
 
-`Required Label Issue Time ≤ Cutoff`
+$$
+\text{Required Label Issue Time} \leq \text{Cutoff}
+$$
 
 ---
 
@@ -304,7 +344,7 @@ This is a special case. For delayed labels or irregular forecast-period mappings
 Testing follows the same input eligibility rule as training. A model may be evaluated through historical inference or used for live prediction.
 
 - Each test or live sample has one Sample As-of Time.
-- Only input records satisfying `Issue Time ≤ Sample As-of Time` are eligible.
+- Only input records satisfying $\text{Issue Time} \leq \text{Sample As-of Time}$ are eligible.
 - Future covariates are allowed when their record versions were issued by the Sample As-of Time.
 - Future or unavailable realised target values must not be used as model inputs.
 - Realised targets are attached only for scoring after predictions have been generated.
@@ -320,7 +360,7 @@ The examples below describe the input and output structures presented to a forec
 - In a **tabular** setup, each sample is represented as one row containing its inputs and outputs. The row has one Sample As-of Time, while individual values may describe different Valid Times.
 - In a **sequential** setup, each sample contains an ordered input sequence and one or more outputs. The sample has one Sample As-of Time, while each sequence position and output has its own Valid Time.
 
-Any input used to construct a sample must satisfy: `Issue Time ≤ Sample As-of Time`
+Any input used to construct a sample must satisfy $\text{Issue Time} \leq \text{Sample As-of Time}$.
 
 In the tabular examples, `t` denotes the Sample As-of Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Sample As-of Time.
 
@@ -377,7 +417,9 @@ The input and output describe the following Valid Times:
 
 The temperature forecast is eligible because:
 
-`2026-06-19 07:40 ≤ 2026-06-19 08:00`
+$$
+\text{2026-06-19 07:40} \leq \text{2026-06-19 08:00}
+$$
 
 Its Valid Time is later than the Sample As-of Time because it is a future covariate.
 
@@ -590,15 +632,21 @@ For a sample with Sample As-of Time `2026-06-19 08:00`:
 
 The historical load is eligible because:
 
-`2026-06-19 07:55 ≤ 2026-06-19 08:00`
+$$
+\text{2026-06-19 07:55} \leq \text{2026-06-19 08:00}
+$$
 
 The temperature forecast is eligible because:
 
-`2026-06-19 07:40 ≤ 2026-06-19 08:00`
+$$
+\text{2026-06-19 07:40} \leq \text{2026-06-19 08:00}
+$$
 
 The wind forecast issued at 08:05 is not eligible because:
 
-`2026-06-19 08:05 > 2026-06-19 08:00`
+$$
+\text{2026-06-19 08:05} > \text{2026-06-19 08:00}
+$$
 
 An earlier eligible wind-forecast version must be used. If no eligible version exists, the sample must follow the model's defined missing-input policy or be excluded.
 
@@ -703,15 +751,21 @@ The samples may be processed together in one batch. Batching does not merge thei
 
 A training dataset is constructed with:
 
-`Cutoff = 2026-06-19 08:30`
+$$
+\text{Cutoff} = \text{2026-06-19 08:30}
+$$
 
 For every input used by a sample:
 
-`Issue Time ≤ Sample As-of Time`
+$$
+\text{Issue Time} \leq \text{Sample As-of Time}
+$$
 
 For every required label:
 
-`Label Issue Time ≤ Cutoff`
+$$
+\text{Label Issue Time} \leq \text{Cutoff}
+$$
 
 | Sample As-of Time | Label Valid Time | Label Issue Time | Cutoff |
 | :--- | :--- | :--- | :--- |
@@ -724,7 +778,9 @@ The second label is not available by the Cutoff. If both labels are required, th
 
 For a regular half-hourly schedule where labels are available immediately at their Valid Times:
 
-`Latest Training Sample As-of Time = Cutoff − Maximum Forecast Period`
+$$
+\text{Latest Training Sample As-of Time} = \text{Cutoff} - \text{Maximum Forecast Period}
+$$
 
 This is a special case. When labels are issued later or the Forecast Period Mapping is irregular, completeness must be evaluated using the actual Label Issue Times.
 
