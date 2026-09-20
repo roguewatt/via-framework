@@ -200,17 +200,13 @@ $$
 and the corresponding Target vector is:
 
 $$
-\mathbf{Y}_{\mathbf{u}}
-=
-\left(Y^{(1)}_{u_1}, \ldots, Y^{(m)}_{u_m}\right)
+\mathbf{Y}_{\mathbf{u}} = \left(Y^{(1)}_{u_1}, \ldots, Y^{(m)}_{u_m}\right)
 $$
 
 so the sample becomes:
 
 $$
-S_{\tau,\mathbf{u}}
-=
-\left(X_{\tau,\mathbf{u}}, \mathbf{Y}_{\mathbf{u}}\right)
+S_{\tau,\mathbf{u}} = \left(X_{\tau,\mathbf{u}}, \mathbf{Y}_{\mathbf{u}}\right)
 $$
 
 The single-output form is the special case $m=1$.
@@ -309,7 +305,7 @@ $$
 
 This is a label-completeness rule, not an input eligibility rule. Label Issue Times may be later than the Sample As-of Time.
 
-An observation is not automatically eligible because its Valid Time is earlier than the Sample As-of Time. It must still satisfy: 
+An observation is not automatically eligible because its Valid Time is earlier than the Sample As-of Time. It must still satisfy:
 
 $$
 \text{Issue Time} \leq \text{Sample As-of Time}
@@ -360,7 +356,7 @@ The examples below describe the input and output structures presented to a forec
 - In a **tabular** setup, each sample is represented as one row containing its inputs and outputs. The row has one Sample As-of Time, while individual values may describe different Valid Times.
 - In a **sequential** setup, each sample contains an ordered input sequence and one or more outputs. The sample has one Sample As-of Time, while each sequence position and output has its own Valid Time.
 
-Any input used to construct a sample must satisfy $\text{Issue Time} \leq \text{Sample As-of Time}$.
+Any input used to construct a sample must satisfy: $\text{Issue Time} \leq \text{Sample As-of Time}$
 
 In the tabular examples, `t` denotes the Sample As-of Time on the underlying time axis. Expressions such as `t-1` and `t+1` identify the Valid Times of individual input and output values relative to that Sample As-of Time.
 
@@ -905,3 +901,4 @@ Licensed under the [Apache License 2.0](LICENSE).
   title        = {VIA: A Governance and Auditing Convention for Production Forecasting},
   year         = {2026},
   howpublished = {\url{https://github.com/roguewatt/via-framework}}}
+```
