@@ -28,10 +28,11 @@ VIA does not introduce a new forecasting algorithm, model architecture, or tempo
 | Run Design | Forecasting Strategy | Defines whether forecasts are generated directly or recursively |
 | Run Design | Inference Organisation | Defines whether a run processes one or multiple forecasting samples |
 | Run Design | Cutoff | Defines the point-in-time visibility boundary of the run |
-| Run Design | Horizon Coverage | Defines which future Valid Times must be forecast |
-| Sample Design | VIA | Defines the temporal meaning and eligibility of each sample |
-| Sample Design | Forecast Period Mapping | Maps output horizons to Valid Times |
-| Sample Design | I/O Schema | Defines the logical input and output structure of each sample |
+| Run Design | Horizon Coverage | Defines the forecast periods and Valid Times that must be covered |
+| Sample Design | VIA | Defines the temporal meaning and information eligibility of each sample |
+| Sample Design | Forecast Sample | Defines the input and output structure of a sample |
+| Sample Design | Forecast Period Mapping | Relates Sample As-of Time to output Valid Time |
+| Sample Design | I/O Schema | Defines the logical input and output structure presented to a model |
 
 ---
 
@@ -44,7 +45,7 @@ Forecasting Strategy defines how forecasts are generated.
 - **Direct forecasting**: forecasts are generated directly from eligible inputs without using earlier predictions as inputs for later forecasts.
 - **Recursive forecasting**: earlier predictions are used as inputs when generating later forecasts.
 
-Forecasting Strategy is independent of the number of forecast horizons, forecasting samples, and model outputs.
+Forecasting Strategy is independent of the number of Forecast Periods, forecasting samples, and model outputs.
 
 ## Inference Organisation
 
@@ -52,11 +53,11 @@ Inference Organisation defines how many forecasting samples are processed.
 - **Single inference**: one forecasting sample is processed to produce one set of outputs.
 - **Multiple inferences**: multiple forecasting samples are processed, each with its own Sample As-of Time.
 
-Multiple inferences may be processed individually or together in a batch. The number of inferences is independent of the number of forecast horizons:
+Multiple inferences may be processed individually or together in a batch. The number of inferences is independent of the number of Forecast Periods:
 
-- one inference may produce one or multiple horizons;
+- one inference may produce outputs for one or multiple Forecast Periods;
 - an evaluation may contain multiple inferences;
-- each inference may use a single-horizon or multi-horizon output structure.
+- each inference may use a single-output or multi-output structure.
 
 ## Cutoff
 
@@ -88,14 +89,15 @@ Therefore:
 
 ## Horizon Coverage
 
-Horizon Coverage defines which future Valid Times a forecasting run must produce predictions for.
+Horizon Coverage defines how far into the future a forecasting run must produce predictions.
 
-- **Single-horizon forecasting** produces a prediction for one Valid Time.
-- **Multi-horizon forecasting** produces predictions for multiple Valid Times:
+For an output with Sample As-of Time `τ` and Valid Time `u`, the corresponding Forecast Period is:
 
-`y(t+1), y(t+2), ..., y(t+H)`
+`p = u − τ`
 
-A horizon identifies an ordered forecast output. Its Forecast Period determines the corresponding Valid Time relative to the Sample As-of Time.
+A run may cover one Forecast Period or multiple Forecast Periods. The required Valid Times follow from the Sample As-of Time and the applicable Forecast Periods.
+
+Terms such as `H0`, `H1`, and `H2` may be used by a model or application as output labels. In VIA, these labels do not replace the underlying temporal definitions: Sample As-of Time, Valid Time, and Forecast Period.
 
 Horizon Coverage is independent of:
 
@@ -111,7 +113,7 @@ Horizon Coverage is independent of:
 
 ### Record
 
-A record is a data value or prediction value used by a forecasting system. In VIA, a record has temporal meaning: it describes a Valid Time and becomes available at an Issue Time. A record may serve as an input, a target, or a prediction, depending on how it is used by a forecasting sample or run.
+A record is a data value or prediction value used by a forecasting system. In VIA, a record has temporal meaning: it describes a Valid Time and is issued at an Issue Time. A record may serve as an input, a target, or a prediction, depending on how it is used by a forecasting sample or run.
 
 Each revision or forecast release is treated as a separate record version with its own Issue Time.
 
@@ -119,66 +121,120 @@ Each revision or forecast release is treated as a separate record version with i
 
 Valid Time is the business-defined time point or interval that a record or prediction describes.
 
-It is a property of the modelled reality, independent of when the record was created, collected, or published.
+It is a property of the modelled reality, independent of when the record was created, collected, or issued.
 
 - For half-hourly load covering 08:00–08:30, the Valid Time may be 08:00.
 - For a weather forecast for tomorrow, the Valid Time is the future time described by the forecast.
 
 ### Issue Time
 
-Issue Time is the earliest time at which a specific record, prediction, or record version becomes available to its intended consumer through the declared production data path.
+Issue Time is the time at which a specific record, prediction, or record version is issued by its source.
 
-Source publication time, ingestion time, and system-availability time may differ. The Issue Time used for VIA must reflect the availability boundary relevant to the intended consumer.
-
-For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a model running at 08:03 cannot use it.
+The precise meaning of issuance follows the source definition for that data product. Each revision, correction, or forecast release is treated as a separate record version with its own Issue Time.
 
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
-| Outturn | 2026-06-18 08:00 | 2026-06-19 02:00 | Published the following day |
-| Outturn revision | 2026-06-18 08:00 | 2026-06-19 10:00 | Revised version published later |
+| Outturn | 2026-06-18 08:00 | 2026-06-19 02:00 | Issued the following day |
+| Outturn revision | 2026-06-18 08:00 | 2026-06-19 10:00 | Revised version issued later |
 | Forecast | 2026-06-20 08:00 | 2026-06-19 08:15 | Forecast issued the previous day |
-
-Each revision or forecast release is a separate record version with its own Issue Time.
 
 ### Sample As-of Time
 
-Sample As-of Time is the sample-level information-state anchor of a forecasting sample.
+Sample As-of Time is the information-state anchor of a forecasting sample.
 
-It defines:
+For the input side of the sample, it defines the information boundary: every input record used by the sample must have been issued by that time.
 
-- the information state used to construct the sample;
-- the eligibility boundary for input records;
-- the anchor from which output horizons are mapped to Valid Times.
+`Input Issue Time ≤ Sample As-of Time`
+
+For the output side, Sample As-of Time is the reference point from which a Forecast Period may be expressed. The output itself is defined by its Valid Time and Target.
 
 Each training, validation, test, or live sample has one Sample As-of Time.
 
-Every input value included in the sample must satisfy:
+### Output
 
-`Issue Time ≤ Sample As-of Time`
+A forecast output is defined by:
 
-## Forecast Period Mapping
+`Output = (Valid Time, Target)`
 
-A Forecast Period Mapping assigns a forecast period to each output horizon. The forecast period is the interval between the Sample As-of Time and the output's Valid Time:
+Valid Time states **when** the output applies. Target states **what** is being forecast.
+
+Examples include:
+
+- `(2026-06-19 09:00, Load)`
+- `(2026-06-19 09:00, Price)`
+- `(2026-06-19 09:30, Load)`
+
+Multiple outputs may share the same Valid Time, and the same Target may appear at multiple Valid Times.
+
+### Forecast Sample
+
+For a single output, let:
+
+- `τ` be the Sample As-of Time;
+- `u` be the output Valid Time;
+- `X_{τ,u}` be the inputs used by the sample;
+- `Y_u` be the Target at Valid Time `u`.
+
+The forecast sample is:
+
+`S_{τ,u} = (X_{τ,u}, Y_u)`
+
+For multiple outputs, the Valid Time becomes a vector:
+
+`u⃗ = (u₁, ..., uₘ)`
+
+and the corresponding Target vector is:
+
+`Y_{u⃗} = (Y¹_{u₁}, ..., Yᵐ_{uₘ})`
+
+so the sample becomes:
+
+`S_{τ,u⃗} = (X_{τ,u⃗}, Y_{u⃗})`
+
+The single-output form is the special case `m = 1`.
+
+The roles of `τ` and `u⃗` are different:
+
+- `τ` defines the information boundary for the inputs;
+- `u⃗` contains the Valid Times of the outputs.
+
+Let `F_τ` denote the information available by Sample As-of Time `τ`. The VIA information-admissibility condition is:
+
+`σ(X_{τ,u⃗}) ⊆ F_τ`
+
+The condition applies only to the input side of the sample. It does not require the future Targets to be known at `τ`.
+
+Operationally, this is enforced by:
+
+`Input Issue Time ≤ Sample As-of Time`
+
+### Forecast Period Mapping
+
+Forecast Period is the time interval between Sample As-of Time and an output's Valid Time.
+
+For one output:
+
+`p = u − τ`
+
+or equivalently:
 
 `Valid Time = Sample As-of Time + Forecast Period`
 
-For a regular half-hourly forecast:
+For multiple outputs:
 
-| Horizon | Forecast Period |
-| :--- | :--- |
-| H0 | 0 minutes |
-| H1 | 30 minutes |
-| H2 | 60 minutes |
+`p⃗ = u⃗ − τ`
 
-For a sample with Sample As-of Time `08:30`, the outputs therefore resolve to:
+with the subtraction applied component-wise.
 
-| Horizon | Forecast Period | Valid Time |
+For a regular half-hourly forecast with Sample As-of Time `08:30`:
+
+| Output Label | Forecast Period | Valid Time |
 | :--- | :--- | :--- |
 | H0 | 0 minutes | 08:30 |
 | H1 | 30 minutes | 09:00 |
 | H2 | 60 minutes | 09:30 |
 
-A Forecast Period Mapping may be regular or irregular. A horizon is therefore an ordered output identifier and does not necessarily imply a fixed elapsed duration by itself.
+`H0`, `H1`, and `H2` are output labels in this example. The temporal meaning is carried by the Forecast Period and Valid Time.
 
 ## I/O Schema
 
@@ -191,11 +247,11 @@ SISO, SIMO, MISO, and MIMO describe the logical structure presented to a model:
 
 Inputs and outputs may represent business variables, target series, covariates, or separately constructed model dimensions.
 
-A jointly generated multi-horizon forecast may therefore appear as multiple output dimensions even when all outputs belong to the same target series.
+A forecast covering multiple Valid Times may therefore appear as multiple output dimensions even when all outputs belong to the same Target series.
 
-Multi-horizon and I/O schema describe different aspects of the model:
+Forecast-period coverage and I/O schema describe different aspects of the model:
 
-- **Multi-horizon** describes which future Valid Times are predicted.
+- **Forecast-period coverage** describes which future Valid Times are predicted.
 - **I/O schema** describes the model's input and output dimensions.
 
 ---
@@ -235,7 +291,7 @@ Historical samples must reproduce the source-specific availability state that ex
 
 For a regular half-hourly schedule where labels are issued immediately at their Valid Times:
 
-`Latest Training Sample As-of Time = Cutoff − Maximum Horizon × 30 minutes`
+`Latest Training Sample As-of Time = Cutoff − Maximum Forecast Period`
 
 This is a special case. For delayed labels or irregular forecast-period mappings, use the actual label-completeness rule:
 
@@ -397,11 +453,11 @@ After inference:
 
 Using the Forecast Period Mapping, the outputs resolve to:
 
-| Sample As-of Time | Horizon | Valid Time | Load Forecast |
-| :--- | :--- | :--- | ---: |
-| 2026-06-19 08:30 | H1 | 2026-06-19 09:00 | 25,850 MW |
-| 2026-06-19 08:30 | H2 | 2026-06-19 09:30 | 26,050 MW |
-| 2026-06-19 08:30 | H3 | 2026-06-19 10:00 | 26,200 MW |
+| Sample As-of Time | Output Label | Forecast Period | Valid Time | Load Forecast |
+| :--- | :--- | :--- | :--- | ---: |
+| 2026-06-19 08:30 | H1 | 30 minutes | 2026-06-19 09:00 | 25,850 MW |
+| 2026-06-19 08:30 | H2 | 60 minutes | 2026-06-19 09:30 | 26,050 MW |
+| 2026-06-19 08:30 | H3 | 90 minutes | 2026-06-19 10:00 | 26,200 MW |
 
 This is SIMO because one tabular input value produces multiple output values.
 
@@ -426,11 +482,11 @@ A training sample may look like:
 
 **Output**
 
-| Sample As-of Time | Horizon | Valid Time | Load |
-| :--- | :--- | :--- | ---: |
-| 2026-06-19 08:00 | H1 | 2026-06-19 08:30 | 25,300 MW |
-|                  | H2 | 2026-06-19 09:00 | 25,650 MW |
-|                  | H3 | 2026-06-19 09:30 | 25,900 MW |
+| Sample As-of Time | Output Label | Forecast Period | Valid Time | Load |
+| :--- | :--- | :--- | :--- | ---: |
+| 2026-06-19 08:00 | H1 | 30 minutes | 2026-06-19 08:30 | 25,300 MW |
+|                  | H2 | 60 minutes | 2026-06-19 09:00 | 25,650 MW |
+|                  | H3 | 90 minutes | 2026-06-19 09:30 | 25,900 MW |
 
 This is SIMO because one ordered load sequence produces multiple future load values.
 
@@ -571,11 +627,11 @@ A test input sample may look like:
 
 After inference:
 
-| Sample As-of Time | Horizon | Valid Time | Solar Forecast |
-| :--- | :--- | :--- | ---: |
-| 2026-06-19 09:00 | H0 | 2026-06-19 09:00 | 185 MW |
-| 2026-06-19 09:00 | H1 | 2026-06-19 09:30 | 220 MW |
-| 2026-06-19 09:00 | H2 | 2026-06-19 10:00 | 250 MW |
+| Sample As-of Time | Output Label | Forecast Period | Valid Time | Solar Forecast |
+| :--- | :--- | :--- | :--- | ---: |
+| 2026-06-19 09:00 | H0 | 0 minutes | 2026-06-19 09:00 | 185 MW |
+| 2026-06-19 09:00 | H1 | 30 minutes | 2026-06-19 09:30 | 220 MW |
+| 2026-06-19 09:00 | H2 | 60 minutes | 2026-06-19 10:00 | 250 MW |
 
 This is MIMO because multiple tabular input values produce multiple output values.
 
@@ -668,7 +724,7 @@ The second label is not available by the Cutoff. If both labels are required, th
 
 For a regular half-hourly schedule where labels are available immediately at their Valid Times:
 
-`Latest Training Sample As-of Time = Cutoff − Maximum Horizon × 30 minutes`
+`Latest Training Sample As-of Time = Cutoff − Maximum Forecast Period`
 
 This is a special case. When labels are issued later or the Forecast Period Mapping is irregular, completeness must be evaluated using the actual Label Issue Times.
 
@@ -691,8 +747,8 @@ The later business Decision Time is outside VIA.
 A VIA-compliant system should be able to reconstruct, for each forecasting sample and prediction:
 
 - Sample As-of Time
-- Output Valid Times
-- Forecast horizons
+- Outputs, identified by Target and Valid Time
+- Forecast Periods, where used
 - Applicable Forecast Period Mapping
 - Input record identifiers with their Valid Times and Issue Times
 - Selected record versions and the deterministic rule used to select them
@@ -735,7 +791,7 @@ VIA is not:
 
 VIA is the temporal governance and auditing convention centred on Valid Time, Sample As-of Time, and Issue Time.
 
-The wider document describes how VIA interacts with adjacent production controls such as Cutoff, forecasting strategy, inference organisation, horizon coverage, and I/O schema.
+The wider document describes how VIA interacts with adjacent production controls such as Cutoff, forecasting strategy, inference organisation, Forecast Period coverage, and I/O schema.
 
 ---
 
