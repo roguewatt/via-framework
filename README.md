@@ -1,6 +1,8 @@
 # VIA Framework
 
-**Valid / Issue / Sample As-of Time — A Governance and Auditing Convention for Production Forecasting**
+**VIA — Valid / Issue / As-of Time for Each Sample**
+
+*A Governance and Auditing Convention for Production Forecasting*
 
 ## Purpose
 
@@ -17,15 +19,19 @@ The three core VIA concepts are:
 - **Issue Time**
 - **Sample As-of Time**
 
-The framework also uses **Cutoff** as a separate run-level control.
+In the acronym VIA, **As-of Time** refers to the as-of time assigned to each forecasting sample. Throughout this document, the formal term **Sample As-of Time** is used. The framework also uses **Cutoff** as a separate run-level control. VIA does not introduce a new forecasting algorithm, model architecture, or temporal theory. VIA uses established ideas from forecasting, temporal databases, point-in-time feature retrieval, and real-time data vintages. Its contribution is to organise these ideas into a production forecasting governance convention with explicit run-level, sample-level, record-version-level, and audit-level controls.
 
-VIA does not introduce a new forecasting algorithm, model architecture, or temporal theory. VIA uses established ideas from forecasting, temporal databases, point-in-time feature retrieval, and real-time data vintages. Its contribution is to organise these ideas into a production forecasting governance convention with explicit run-level, sample-level, record-version-level, and audit-level controls.
+## Relationship to Existing Concepts
+
+The individual ideas underlying VIA are established. Valid Time originates in temporal-data modelling; point-in-time retrieval addresses historical information availability; and real-time or vintage datasets preserve what was known at historical dates.
+
+VIA does not claim these concepts individually. Its purpose is to organise them into a single production forecasting convention centred on the forecasting sample, its information boundary, record versions, run-level controls, and auditability.
 
 ## Framework Structure
 
 | Level | Component | Purpose |
 | :--- | :--- | :--- |
-| Run Design | Forecasting Strategy | Defines whether forecasts are generated directly or recursively |
+| Run Design | Forecasting Strategy | Defines how forecasts are generated |
 | Run Design | Inference Organisation | Defines whether a run processes one or multiple forecasting samples |
 | Run Design | Cutoff | Defines the point-in-time visibility boundary of the run |
 | Run Design | Horizon Coverage | Defines the forecast periods and Valid Times that must be covered |
@@ -42,8 +48,12 @@ VIA does not introduce a new forecasting algorithm, model architecture, or tempo
 
 Forecasting Strategy defines how forecasts are generated.
 
+Common examples include:
+
 - **Direct forecasting**: forecasts are generated directly from eligible inputs without using earlier predictions as inputs for later forecasts.
 - **Recursive forecasting**: earlier predictions are used as inputs when generating later forecasts.
+
+VIA does not prescribe or attempt to exhaust the taxonomy of forecasting strategies.
 
 Forecasting Strategy is independent of the number of Forecast Periods, forecasting samples, and model outputs.
 
@@ -119,7 +129,7 @@ Horizon Coverage is independent of:
 
 ### Record
 
-A record is a data value or prediction value used by a forecasting system. In VIA, a record has temporal meaning: it describes a Valid Time and is issued at an Issue Time. A record may serve as an input, a target, or a prediction, depending on how it is used by a forecasting sample or run.
+A record is a data value or prediction value used by a forecasting system. In VIA, a record has temporal meaning: it describes a Valid Time and becomes available at an Issue Time. A record may serve as an input, a target, or a prediction, depending on how it is used by a forecasting sample or run.
 
 Each revision or forecast release is treated as a separate record version with its own Issue Time.
 
@@ -127,16 +137,16 @@ Each revision or forecast release is treated as a separate record version with i
 
 Valid Time is the business-defined time point or interval that a record or prediction describes.
 
-It is a property of the modelled reality, independent of when the record was created, collected, or issued.
+It is a property of the modelled reality, independent of when the record was created, collected, published, or became available to the forecasting process.
 
 - For half-hourly load covering 08:00–08:30, the Valid Time may be 08:00.
 - For a weather forecast for tomorrow, the Valid Time is the future time described by the forecast.
 
 ### Issue Time
 
-Issue Time is the time at which a specific record, prediction, or record version is issued by its source.
+Issue Time is the earliest time at which a specific record, prediction, or record version becomes available to the intended forecasting process through the declared data path. Source publication time, ingestion time, and system-availability time may differ. The Issue Time used by VIA must reflect the availability boundary relevant to the intended forecasting process. For example, if a value is published by its source at 08:00 but becomes available to the forecasting system only at 08:07, it is not eligible for a sample with Sample As-of Time 08:03.
 
-The precise meaning of issuance follows the source definition for that data product. Each revision, correction, or forecast release is treated as a separate record version with its own Issue Time.
+Each revision, correction, or forecast release is treated as a separate record version with its own Issue Time.
 
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
@@ -148,7 +158,7 @@ The precise meaning of issuance follows the source definition for that data prod
 
 Sample As-of Time is the information-state anchor of a forecasting sample.
 
-For the input side of the sample, it defines the information boundary: every input record used by the sample must have been issued by that time.
+For the input side of the sample, it defines the information boundary: every input record used by the sample must have become available by that time.
 
 $$
 \text{Input Issue Time} \leq \text{Sample As-of Time}
@@ -266,6 +276,8 @@ For a regular half-hourly forecast with Sample As-of Time `08:30`:
 
 ## I/O Schema
 
+In VIA, SISO, SIMO, MISO, and MIMO are used only to describe the logical input/output structure presented to a model. Related terminology may be used differently in forecasting literature.
+
 SISO, SIMO, MISO, and MIMO describe the logical structure presented to a model:
 
 - **SISO**: single input, single output
@@ -341,7 +353,7 @@ Testing follows the same input eligibility rule as training. A model may be eval
 
 - Each test or live sample has one Sample As-of Time.
 - Only input records satisfying $\text{Issue Time} \leq \text{Sample As-of Time}$ are eligible.
-- Future covariates are allowed when their record versions were issued by the Sample As-of Time.
+- Future covariates are allowed when their record versions were available by the Sample As-of Time.
 - Future or unavailable realised target values must not be used as model inputs.
 - Realised targets are attached only for scoring after predictions have been generated.
 - For a fixed-model backtest, the completed model is frozen before the first test sample.
@@ -638,7 +650,7 @@ $$
 \text{2026-06-19 07:40} \leq \text{2026-06-19 08:00}
 $$
 
-The wind forecast issued at 08:05 is not eligible because:
+The wind forecast with Issue Time 08:05 is not eligible because:
 
 $$
 \text{2026-06-19 08:05} > \text{2026-06-19 08:00}
@@ -884,6 +896,9 @@ https://doi.org/10.1145/22733.22745
 
 [11] **Jensen, C. S., et al.** (1998). "The consensus glossary of temporal database concepts — February 1998 version." In *Temporal Databases: Research and Practice* (pp. 367–405). Springer.  
 https://doi.org/10.1007/BFb0053710
+
+[12] **Croushore, D., & Stark, T.** (2001). "A real-time data set for macroeconomists." *Journal of Econometrics*, 105(1), 111–130.  
+https://doi.org/10.1016/S0304-4076(01)00072-0
 
 ---
 
