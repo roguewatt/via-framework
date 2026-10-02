@@ -151,8 +151,8 @@ Source publication time, ingestion time, and system-availability time may differ
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
 | Outturn | 2026-06-18 08:00 | 2026-06-19 02:00 | Available the following day |
-| Outturn revision | 2026-06-18 08:00 | 2026-06-19 10:00 | Revised version issued later |
-| Forecast | 2026-06-20 08:00 | 2026-06-19 08:15 | Forecast issued the previous day |
+| Outturn revision | 2026-06-18 08:00 | 2026-06-19 10:00 | Revised version available later |
+| Forecast | 2026-06-20 08:00 | 2026-06-19 08:15 | Forecast available the previous day |
 
 ### Sample As-of Time
 
