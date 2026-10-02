@@ -148,11 +148,9 @@ Issue Time is the earliest time at which a specific version of a record becomes 
 
 Source publication time, ingestion time, and system-availability time may differ. The Issue Time used for VIA must reflect the availability boundary relevant to the intended forecasting process. For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a sample with Sample As-of Time 08:03 cannot use that record version.
 
-Each revision, correction, or forecast release is treated as a separate record version with its own Issue Time.
-
 | Type | Valid Time | Issue Time | Description |
 | :--- | :--- | :--- | :--- |
-| Outturn | 2026-06-18 08:00 | 2026-06-19 02:00 | Issued the following day |
+| Outturn | 2026-06-18 08:00 | 2026-06-19 02:00 | Available the following day |
 | Outturn revision | 2026-06-18 08:00 | 2026-06-19 10:00 | Revised version issued later |
 | Forecast | 2026-06-20 08:00 | 2026-06-19 08:15 | Forecast issued the previous day |
 
