@@ -144,7 +144,9 @@ It is a property of the modelled reality, independent of when the record was cre
 
 ### Issue Time
 
-Issue Time is the earliest time at which a specific version of a record becomes available to the intended forecasting process through the declared data path. Every record version has its own Issue Time, including forecasts, provisional observations, revised observations, and final observations. Source publication time, ingestion time, and system-availability time may differ. The Issue Time used for VIA must reflect the availability boundary relevant to the intended forecasting process. For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a sample with Sample As-of Time 08:03 cannot use that record version.
+Issue Time is the earliest time at which a specific version of a record becomes available to the intended forecasting process through the declared data path. Every record version has its own Issue Time, including forecasts, provisional observations, revised observations, and final observations. 
+
+Source publication time, ingestion time, and system-availability time may differ. The Issue Time used for VIA must reflect the availability boundary relevant to the intended forecasting process. For example, if a value is published externally at 08:00 but becomes available to the forecasting platform at 08:07, a sample with Sample As-of Time 08:03 cannot use that record version.
 
 Each revision, correction, or forecast release is treated as a separate record version with its own Issue Time.
 
